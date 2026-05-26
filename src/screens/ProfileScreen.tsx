@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, Alert, ActivityIndicator, Image,
+  StyleSheet, Alert, ActivityIndicator, Image, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -222,6 +222,28 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
             </TouchableOpacity>
           </View>
         )}
+
+        {/* アプリ情報セクション */}
+        <View style={styles.infoSection}>
+          <TouchableOpacity
+            style={styles.infoRow}
+            onPress={() => Linking.openURL('https://kopan0126.github.io/kakeibo_app/privacy-policy.html')}
+          >
+            <Text style={styles.infoRowText}>プライバシーポリシー</Text>
+            <Text style={styles.infoRowArrow}>›</Text>
+          </TouchableOpacity>
+          <View style={styles.infoDivider} />
+          <TouchableOpacity
+            style={styles.infoRow}
+            onPress={() => Linking.openURL('https://kopan0126.github.io/kakeibo_app/terms-of-service.html')}
+          >
+            <Text style={styles.infoRowText}>利用規約</Text>
+            <Text style={styles.infoRowArrow}>›</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.versionText}>家計簿 v1.0.0</Text>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -303,4 +325,22 @@ const styles = StyleSheet.create({
     paddingVertical: 14, alignItems: 'center',
   },
   linkBtnText: { color: AI.brass, fontWeight: 'bold', fontSize: 15, letterSpacing: 1 },
+
+  // アプリ情報
+  infoSection: {
+    marginTop: 28, borderTopWidth: 1, borderTopColor: AI.rule, paddingTop: 8,
+    backgroundColor: AI.washi2, borderRadius: 12,
+    borderWidth: 1, borderColor: AI.rule,
+  },
+  infoRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 14,
+  },
+  infoRowText: { fontSize: 15, color: AI.text },
+  infoRowArrow: { fontSize: 20, color: AI.textSoft },
+  infoDivider: { height: 1, backgroundColor: AI.rule, marginHorizontal: 16 },
+  versionText: {
+    textAlign: 'center', fontSize: 12, color: AI.textSoft,
+    marginTop: 24, marginBottom: 8,
+  },
 });
