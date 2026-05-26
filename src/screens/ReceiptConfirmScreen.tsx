@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { useAuthStore } from '../stores/authStore';
 import { useTransactionStore } from '../stores/transactionStore';
+import { useTransactionFilter } from '../hooks/useActiveGroupId';
 import { createTransaction, getCategories } from '../services/transactions';
 import { findCategoryBySuggestion } from '../utils/categoryMapping';
 import { formatCurrency } from '../utils/format';
@@ -18,6 +19,7 @@ export default function ReceiptConfirmScreen({ route, navigation }: any) {
   const receipt = route.params.receipt as ParsedReceipt;
   const { user } = useAuthStore();
   const { categories, setCategories, addTransaction } = useTransactionStore();
+  const filter = useTransactionFilter();
 
   const [type, setType] = useState<CategoryType>(
     receipt.transactionType === 'income' ? 'income' : 'expense',
@@ -74,7 +76,7 @@ export default function ReceiptConfirmScreen({ route, navigation }: any) {
     setIsSaving(true);
     try {
       const tx = await createTransaction({
-        group_id: null,
+        group_id: filter.groupId,
         user_id: user.id,
         category_id: selectedCategoryId,
         amount_cents: amount,

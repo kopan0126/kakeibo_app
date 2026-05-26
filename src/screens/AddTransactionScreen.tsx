@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { useAuthStore } from '../stores/authStore';
 import { useTransactionStore } from '../stores/transactionStore';
+import { useTransactionFilter } from '../hooks/useActiveGroupId';
 import { createTransaction, getCategories } from '../services/transactions';
 import { formatCurrency } from '../utils/format';
 import CategoryIcon, { isImageIcon } from '../components/CategoryIcon';
@@ -19,6 +20,7 @@ const KEYS = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', '00', '⌫'];
 export default function AddTransactionScreen({ navigation }: { navigation: any }) {
   const { user } = useAuthStore();
   const { categories, setCategories, addTransaction } = useTransactionStore();
+  const filter = useTransactionFilter();
 
   const [type, setType] = useState<CategoryType>('expense');
   const [amountStr, setAmountStr] = useState('0');
@@ -72,7 +74,7 @@ export default function AddTransactionScreen({ navigation }: { navigation: any }
     setIsSaving(true);
     try {
       const tx = await createTransaction({
-        group_id: null,
+        group_id: filter.groupId,
         user_id: user.id,
         category_id: selectedCategoryId,
         amount_cents: amount,
