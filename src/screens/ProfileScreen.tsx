@@ -7,7 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { useAuthStore } from '../stores/authStore';
-import { updateProfile, uploadAvatar, linkEmail } from '../services/auth';
+import { updateProfile, uploadAvatar, linkEmail, signOut } from '../services/auth';
+import { supabase } from '../services/supabase';
 import { AI } from '../theme/aizome';
 
 export default function ProfileScreen({ navigation }: { navigation: any }) {
@@ -21,6 +22,7 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   const isAnonymous = !user?.email || user.email === '';
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -102,6 +104,34 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  async function handleDeleteAccount() {
+    Alert.alert(
+      'アカウントを削除',
+      'すべての家計データ・カテゴリ・グループ情報が完全に削除されます。この操作は取り消せません。本当に削除しますか？',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: '削除する',
+          style: 'destructive',
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              const { error } = await supabase.functions.invoke('delete-account');
+              if (error) throw error;
+              await signOut();
+              setUser(null);
+            } catch (e) {
+              Alert.alert('エラー', 'アカウントの削除に失敗しました。しばらく待ってから再試行してください。');
+              console.error('delete-account error:', e);
+            } finally {
+              setIsDeleting(false);
+            }
+          },
+        },
+      ],
+    );
   }
 
   async function handleLinkEmail() {
@@ -244,6 +274,17 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
 
         <Text style={styles.versionText}>家計簿 v1.0.0</Text>
 
+        {/* アカウント削除 */}
+        <TouchableOpacity
+          style={[styles.deleteAccountBtn, isDeleting && { opacity: 0.6 }]}
+          onPress={handleDeleteAccount}
+          disabled={isDeleting}
+        >
+          {isDeleting
+            ? <ActivityIndicator color={AI.danger} />
+            : <Text style={styles.deleteAccountText}>アカウントを削除する</Text>}
+        </TouchableOpacity>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -343,4 +384,12 @@ const styles = StyleSheet.create({
     textAlign: 'center', fontSize: 12, color: AI.textSoft,
     marginTop: 24, marginBottom: 8,
   },
+
+  // アカウント削除
+  deleteAccountBtn: {
+    marginTop: 32, marginBottom: 16,
+    borderWidth: 1, borderColor: AI.danger, borderRadius: 12,
+    paddingVertical: 14, alignItems: 'center',
+  },
+  deleteAccountText: { color: AI.danger, fontSize: 14, fontWeight: '600' },
 });
