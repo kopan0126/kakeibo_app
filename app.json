@@ -19,7 +19,8 @@
       "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "レシートを撮影して自動で家計簿に記録するために、カメラへのアクセスが必要です。",
-        "NSPhotoLibraryUsageDescription": "レシート画像の選択やカテゴリアイコンの設定のために、写真ライブラリへのアクセスが必要です。"
+        "NSPhotoLibraryUsageDescription": "レシート画像の選択やカテゴリアイコンの設定のために、写真ライブラリへのアクセスが必要です。",
+        "NSUserTrackingUsageDescription": "お客様に関連性の高い広告を表示するために、トラッキングの許可をお願いしています。許可しなくてもアプリの全機能をご利用いただけます。"
       }
     },
     "android": {
@@ -48,7 +49,8 @@
           "androidAppId": "ca-app-pub-1205763421067066~7594039278",
           "iosAppId": "ca-app-pub-1205763421067066~3017185779"
         }
-      ]
+      ],
+      "expo-tracking-transparency"
     ],
     "extra": {
       "eas": {

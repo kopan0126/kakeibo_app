@@ -23,6 +23,11 @@
   },
   "submit": {
     "production": {
+      "ios": {
+        "appleId": "kopandeveloper0126@gmail.com",
+        "ascAppId": "",
+        "appleTeamId": ""
+      },
       "android": {
         "track": "production",
         "releaseStatus": "draft"

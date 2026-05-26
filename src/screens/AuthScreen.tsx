@@ -5,10 +5,21 @@ import {
   ActivityIndicator, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { requestTrackingPermissionsAsync } from 'expo-tracking-transparency';
 import { signIn, signUp, signInAnonymously } from '../services/auth';
 import { useAuthStore } from '../stores/authStore';
 import AsanohaBg from '../components/AsanohaBg';
 import { AI } from '../theme/aizome';
+
+// ATTリクエスト（iOS のみ・一度だけ表示される）
+async function requestATT() {
+  if (Platform.OS !== 'ios') return;
+  try {
+    await requestTrackingPermissionsAsync();
+  } catch {
+    // Expo Go など ATT 非対応環境では無視
+  }
+}
 
 type Mode = 'login' | 'signup';
 
@@ -42,11 +53,13 @@ export default function AuthScreen() {
       if (mode === 'login') {
         const { user, error } = await signIn(email.trim(), password);
         if (error) { Alert.alert('ログインエラー', error.message); return; }
+        await requestATT();
         setUser(user);
       } else {
         const { user, error } = await signUp(email.trim(), password, displayName.trim());
         if (error) { Alert.alert('登録エラー', error.message); return; }
         if (user) {
+          await requestATT();
           Alert.alert('確認メールを送信しました', 'メールのリンクをクリックしてアカウントを有効化してください。');
         }
       }
@@ -60,6 +73,7 @@ export default function AuthScreen() {
     try {
       const { user, error } = await signInAnonymously();
       if (error) { Alert.alert('エラー', error.message); return; }
+      await requestATT();
       setUser(user);
     } finally {
       setIsGuest(false);
