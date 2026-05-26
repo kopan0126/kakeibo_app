@@ -4,8 +4,7 @@ import {
   StyleSheet, ActivityIndicator, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { PieChart } from 'react-native-chart-kit';
-import { Dimensions } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { useAuthStore } from '../stores/authStore';
 import { useTransactionStore } from '../stores/transactionStore';
 import { useTransactionFilter } from '../hooks/useActiveGroupId';
@@ -19,7 +18,21 @@ import { AI } from '../theme/aizome';
 import { signOut } from '../services/auth';
 import type { Transaction, Category } from '../types';
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
+const DONUT_PALETTE = [
+  AI.brass, '#D9BC85', '#A8845A', '#8a9d6a', '#7e8aa3', '#5a6b87', '#384d75',
+];
+
+function arcPath(cx: number, cy: number, r: number, startDeg: number, endDeg: number): string {
+  const span = Math.min(endDeg - startDeg, 359.99);
+  const start = ((startDeg - 90) * Math.PI) / 180;
+  const end = ((startDeg - 90 + span) * Math.PI) / 180;
+  const x1 = cx + r * Math.cos(start);
+  const y1 = cy + r * Math.sin(start);
+  const x2 = cx + r * Math.cos(end);
+  const y2 = cy + r * Math.sin(end);
+  const large = span > 180 ? 1 : 0;
+  return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
+}
 
 export default function HomeScreen({ navigation }: { navigation: any }) {
   const { user, setUser } = useAuthStore();
@@ -97,7 +110,7 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
             <Text style={styles.heroSubLabel}>今月の収支</Text>
             <View style={styles.heroBalanceRow}>
               <Text style={styles.heroCurrency}>¥</Text>
-              <Text style={[styles.heroBalance, { color: balance >= 0 ? AI.washi : '#e07070' }]}>
+              <Text style={[styles.heroBalance, { color: balance >= 0 ? AI.washi : AI.expense }]}>
                 {Math.abs(balance).toLocaleString()}
               </Text>
             </View>
@@ -122,7 +135,7 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
               <View style={styles.heroStatDivider} />
               <View style={styles.heroStatItem}>
                 <Text style={styles.heroStatLabel}>支 出</Text>
-                <Text style={[styles.heroStatValue, { color: '#e07070' }]}>{formatCurrency(expense)}</Text>
+                <Text style={[styles.heroStatValue, { color: AI.expense }]}>{formatCurrency(expense)}</Text>
               </View>
             </View>
           </View>
@@ -135,20 +148,46 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
 
         {isLoading && <ActivityIndicator style={{ marginVertical: 16 }} color={AI.brass} />}
 
-        {/* カテゴリ別円グラフ */}
+        {/* カテゴリ別ドーナツチャート */}
         {pieData.length > 0 && (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>カテゴリ別支出</Text>
-            <PieChart
-              data={pieData}
-              width={SCREEN_WIDTH - 32}
-              height={180}
-              chartConfig={{ color: () => AI.indigo }}
-              accessor="amount"
-              backgroundColor="transparent"
-              paddingLeft="0"
-              hasLegend
-            />
+            <View style={styles.donutRow}>
+              <View style={styles.donutWrap}>
+                <Svg width={120} height={120}>
+                  {(() => {
+                    const total = pieData.reduce((s, d) => s + d.amount, 0);
+                    let cursor = 0;
+                    return pieData.map((d, i) => {
+                      const deg = (d.amount / total) * 360;
+                      const path = arcPath(60, 60, 44, cursor, cursor + deg);
+                      cursor += deg;
+                      return (
+                        <Path
+                          key={i}
+                          d={path}
+                          stroke={DONUT_PALETTE[i % DONUT_PALETTE.length]}
+                          strokeWidth={16}
+                          fill="none"
+                        />
+                      );
+                    });
+                  })()}
+                </Svg>
+                <View style={styles.donutCenter}>
+                  <Text style={styles.donutTotal}>{pieData.length}項目</Text>
+                </View>
+              </View>
+              <View style={styles.rankList}>
+                {pieData.slice(0, 5).map((d, i) => (
+                  <View key={i} style={styles.rankRow}>
+                    <View style={[styles.rankDot, { backgroundColor: DONUT_PALETTE[i % DONUT_PALETTE.length] }]} />
+                    <Text style={styles.rankName} numberOfLines={1}>{d.name}</Text>
+                    <Text style={styles.rankAmount}>{formatCurrency(d.amount)}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
           </View>
         )}
 
@@ -233,7 +272,7 @@ function TransactionRow({ tx, categories }: { tx: Transaction; categories: Categ
         {tx.memo ? <Text style={styles.txMemo}>{tx.memo}</Text> : null}
       </View>
       <View style={styles.txRight}>
-        <Text style={[styles.txAmount, { color: isIncome ? AI.indigoSoft : '#a44231' }]}>
+        <Text style={[styles.txAmount, { color: isIncome ? AI.indigoSoft : AI.expense }]}>
           {isIncome ? '+' : '-'}{formatCurrency(tx.amount_cents)}
         </Text>
         <Text style={styles.txDate}>{formatDate(tx.transaction_date)}</Text>
@@ -260,7 +299,7 @@ function buildPieData(transactions: Transaction[], categories: Category[]) {
   }
   return Array.from(map.values())
     .filter((d) => d.amount > 0)
-    .map((d) => ({ ...d, legendFontColor: AI.text, legendFontSize: 12 }));
+    .sort((a, b) => b.amount - a.amount);
 }
 
 const styles = StyleSheet.create({
@@ -341,6 +380,17 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 13, fontWeight: '600', color: AI.textSoft, marginBottom: 12, letterSpacing: 3 },
   emptyText: { color: AI.textSoft, textAlign: 'center', paddingVertical: 12 },
 
+  // ドーナツチャート
+  donutRow: { flexDirection: 'row', alignItems: 'center' },
+  donutWrap: { width: 120, height: 120, justifyContent: 'center', alignItems: 'center' },
+  donutCenter: { position: 'absolute', justifyContent: 'center', alignItems: 'center' },
+  donutTotal: { fontSize: 11, color: AI.textSoft, fontWeight: '600' },
+  rankList: { flex: 1, paddingLeft: 16 },
+  rankRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  rankDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
+  rankName: { flex: 1, fontSize: 12, color: AI.text },
+  rankAmount: { fontSize: 12, fontWeight: '600', color: AI.text },
+
   // 取引行
   txRow: {
     flexDirection: 'row', alignItems: 'center',
@@ -384,10 +434,10 @@ const styles = StyleSheet.create({
   },
   profileBtnText: { color: AI.brass, fontWeight: 'bold', fontSize: 15, letterSpacing: 1 },
   signOutBtn: {
-    borderWidth: 1, borderColor: '#a44231', borderRadius: 12,
+    borderWidth: 1, borderColor: AI.expense, borderRadius: 12,
     paddingVertical: 14, alignItems: 'center', marginBottom: 10,
   },
-  signOutText: { color: '#a44231', fontWeight: 'bold', fontSize: 15 },
+  signOutText: { color: AI.expense, fontWeight: 'bold', fontSize: 15 },
   closeBtn: {
     backgroundColor: AI.washi2, borderRadius: 12,
     paddingVertical: 14, alignItems: 'center',

@@ -145,7 +145,7 @@ function TxRow({
         <Text style={styles.txCategory}>{cat?.name ?? '不明'}</Text>
         {tx.memo ? <Text style={styles.txMemo}>{tx.memo}</Text> : null}
       </View>
-      <Text style={[styles.txAmount, { color: isIncome ? '#2196F3' : '#F44336' }]}>
+      <Text style={[styles.txAmount, { color: isIncome ? AI.income : AI.expense }]}>
         {isIncome ? '+' : '-'}{formatCurrency(tx.amount_cents)}
       </Text>
       <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>

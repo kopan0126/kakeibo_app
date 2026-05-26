@@ -198,8 +198,8 @@ const styles = StyleSheet.create({
   btnText: { color: AI.brass, fontWeight: 'bold', fontSize: 15 },
   accountLabel: { fontSize: 14, color: AI.textSoft, marginBottom: 12 },
   signOutBtn: {
-    borderWidth: 1, borderColor: '#E53935', borderRadius: 10,
+    borderWidth: 1, borderColor: 'AI.danger', borderRadius: 10,
     paddingVertical: 12, alignItems: 'center',
   },
-  signOutText: { color: '#E53935', fontWeight: 'bold', fontSize: 15 },
+  signOutText: { color: 'AI.danger', fontWeight: 'bold', fontSize: 15 },
 });

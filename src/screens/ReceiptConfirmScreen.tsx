@@ -118,7 +118,7 @@ export default function ReceiptConfirmScreen({ route, navigation }: any) {
         {(['expense', 'income'] as CategoryType[]).map((t) => (
           <TouchableOpacity
             key={t}
-            style={[styles.toggleBtn, type === t && { backgroundColor: t === 'expense' ? '#F44336' : '#2196F3' }]}
+            style={[styles.toggleBtn, type === t && { backgroundColor: t === 'expense' ? AI.expense : AI.income }]}
             onPress={() => setType(t)}
           >
             <Text style={[styles.toggleText, type === t && styles.toggleTextActive]}>

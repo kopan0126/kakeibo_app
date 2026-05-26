@@ -218,7 +218,7 @@ function TxRow({ tx, categories }: { tx: Transaction; categories: Category[] }) 
         <Text style={styles.txCategory}>{cat?.name ?? '不明'}</Text>
         {tx.memo ? <Text style={styles.txMemo}>{tx.memo}</Text> : null}
       </View>
-      <Text style={[styles.txAmount, { color: isIncome ? '#2196F3' : '#F44336' }]}>
+      <Text style={[styles.txAmount, { color: isIncome ? AI.income : AI.expense }]}>
         {isIncome ? '+' : '-'}{formatCurrency(tx.amount_cents)}
       </Text>
     </View>
@@ -242,8 +242,8 @@ const styles = StyleSheet.create({
   dayNumberSelected: { color: AI.brass, fontWeight: 'bold' },
   dayDisabled: { color: AI.rule },
   dayOtherMonth: { color: AI.rule },
-  dayExpense: { fontSize: 8, color: '#F44336', marginTop: 1 },
-  dayIncome: { fontSize: 8, color: '#2196F3', marginTop: 0 },
+  dayExpense: { fontSize: 8, color: AI.expense, marginTop: 1 },
+  dayIncome: { fontSize: 8, color: AI.income, marginTop: 0 },
   summaryBar: {
     flexDirection: 'row', marginHorizontal: 12, marginBottom: 12,
     backgroundColor: AI.indigo, borderRadius: 12, padding: 14,

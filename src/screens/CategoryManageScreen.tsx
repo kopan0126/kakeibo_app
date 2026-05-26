@@ -368,7 +368,7 @@ export default function CategoryManageScreen() {
                         style={[
                           styles.typeBtn,
                           formType === t && {
-                            backgroundColor: t === 'expense' ? '#F44336' : '#2196F3',
+                            backgroundColor: t === 'expense' ? AI.expense : AI.income,
                           },
                         ]}
                         onPress={() => setFormType(t)}
@@ -569,7 +569,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  clearPhotoBtnText: { color: '#EF5350', fontSize: 12, fontWeight: '600' },
+  clearPhotoBtnText: { color: 'AI.danger', fontSize: 12, fontWeight: '600' },
 
   // 区切り
   dividerRow: {
@@ -659,13 +659,13 @@ const styles = StyleSheet.create({
   // 削除ボタン
   deleteBtn: {
     borderWidth: 1,
-    borderColor: '#EF5350',
+    borderColor: 'AI.danger',
     borderRadius: 10,
     paddingVertical: 12,
     alignItems: 'center',
     marginBottom: 8,
   },
-  deleteBtnText: { color: '#EF5350', fontWeight: '600', fontSize: 14 },
+  deleteBtnText: { color: 'AI.danger', fontWeight: '600', fontSize: 14 },
 
   // 保存・キャンセルボタン行
   modalBtnRow: {

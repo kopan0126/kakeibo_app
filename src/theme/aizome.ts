@@ -11,4 +11,7 @@ export const AI = {
   brass:      '#C9A55C',   // 真鍮
   brassSoft:  '#D9BC85',
   rule:       '#cdb98e',   // 罫線
+  income:     '#384d75',   // 収入（= indigoSoft）
+  expense:    '#a44231',   // 支出・赤褐色
+  danger:     '#c05050',   // 警告・削除
 } as const;
