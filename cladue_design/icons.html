@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>家計簿アプリ — アイコン探索</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;600;700;900&family=Noto+Sans+JP:wght@400;500;600;700&family=Shippori+Mincho:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --indigo: #15243F;
+    --indigo2: #1f3358;
+    --indigo3: #2a4775;
+    --washi: #F1E8D3;
+    --washi2: #E8DCC0;
+    --washiDk: #d4c39e;
+    --brass: #C9A55C;
+    --brassDk: #a8884a;
+    --brassSoft: #D9BC85;
+    --shu: #B4322A;
+    --ink: #15243F;
+    --textSoft: #5a6378;
+    --rule: #cdb98e;
+    --serif: 'Shippori Mincho', 'Noto Serif JP', serif;
+    --sans: 'Noto Sans JP', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--washi); color: var(--ink); font-family: var(--sans); }
+  body {
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(21,36,63,0.04), transparent 50%),
+      radial-gradient(circle at 90% 80%, rgba(201,165,92,0.08), transparent 50%);
+    min-height: 100vh;
+    padding: 48px 32px 96px;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  /* Masthead */
+  .masthead {
+    display: flex; gap: 24px; align-items: flex-end; justify-content: space-between;
+    padding-bottom: 18px; border-bottom: 2px solid var(--ink); margin-bottom: 40px;
+  }
+  .masthead .left .eyebrow {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 4px; color: var(--brassDk);
+  }
+  .masthead .left h1 {
+    font-family: var(--serif); font-size: 42px; font-weight: 700; margin: 4px 0 0;
+    color: var(--indigo); letter-spacing: -0.5px;
+  }
+  .masthead .left h1 .accent { color: var(--brass); }
+  .masthead .left .sub {
+    font-family: var(--serif); font-size: 14px; color: var(--textSoft); margin-top: 8px;
+    max-width: 540px; line-height: 1.7;
+  }
+  .masthead .right { text-align: right; font-family: var(--mono); font-size: 11px; color: var(--textSoft); }
+  .masthead .right b { display: block; color: var(--indigo); font-family: var(--serif); font-size: 18px; font-weight: 600; margin-top: 4px; }
+
+  /* Grid of concepts */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 28px;
+  }
+  .card {
+    background: #fbf6e9;
+    border: 1px solid var(--washiDk);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.02), 0 14px 40px -22px rgba(21,36,63,0.25);
+  }
+  .card-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 16px 22px 12px; border-bottom: 1px solid var(--washiDk);
+  }
+  .card-header .name {
+    font-family: var(--serif); font-size: 17px; font-weight: 700; color: var(--indigo);
+  }
+  .card-header .name .en {
+    font-family: var(--mono); font-size: 10px; font-weight: 500;
+    color: var(--brassDk); letter-spacing: 2px; margin-left: 8px;
+  }
+  .card-header .num {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 2px; color: var(--textSoft);
+  }
+  .card-body {
+    display: grid; grid-template-columns: 220px 1fr; gap: 24px;
+    padding: 22px;
+  }
+  .hero-icon {
+    width: 220px; height: 220px;
+    display: block;
+    filter: drop-shadow(0 16px 32px rgba(21,36,63,0.25));
+  }
+  .meta {
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .meta .desc {
+    font-family: var(--serif); font-size: 12.5px; line-height: 1.75; color: var(--ink);
+  }
+  .meta .desc b { color: var(--brassDk); font-weight: 600; }
+  .swatches { display: flex; gap: 6px; align-items: center; margin-top: 2px; }
+  .swatch {
+    width: 26px; height: 26px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.08);
+    position: relative;
+  }
+  .swatch::after {
+    content: attr(data-hex);
+    position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+    font-family: var(--mono); font-size: 8px; color: var(--textSoft);
+    white-space: nowrap; margin-top: 4px;
+  }
+  .scale-row {
+    display: flex; align-items: flex-end; gap: 10px; padding-top: 6px;
+    border-top: 1px dotted var(--washiDk);
+    margin-top: 4px; padding-top: 12px;
+  }
+  .scale-row .size-chip {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .scale-row .size-chip span {
+    font-family: var(--mono); font-size: 9px; color: var(--textSoft);
+  }
+  .scale-row .size-chip .ic {
+    display: block;
+  }
+
+  /* Home screen mockup section */
+  .homescreen-section {
+    margin-top: 60px;
+    padding: 32px;
+    background: linear-gradient(135deg, var(--indigo), var(--indigo2));
+    border-radius: 24px;
+    color: var(--washi);
+    position: relative; overflow: hidden;
+  }
+  .homescreen-section::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg stroke='%23c9a55c' stroke-opacity='0.13' fill='none' stroke-width='0.5'%3E%3Cpath d='M0 20 L20 0 L40 20 L20 40 Z'/%3E%3Cpath d='M0 20 L20 20 L20 0 M20 20 L40 20 M20 20 L20 40'/%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+  .homescreen-section h2 {
+    position: relative;
+    font-family: var(--serif); font-size: 22px; margin: 0;
+    display: flex; align-items: baseline; gap: 14px;
+  }
+  .homescreen-section h2 .en {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 3px; color: var(--brass);
+  }
+  .homescreen-section p {
+    position: relative;
+    font-family: var(--serif); font-size: 13px; color: rgba(241,232,211,0.7);
+    margin: 6px 0 24px;
+  }
+
+  /* Phone home grid */
+  .phones {
+    position: relative;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
+  }
+  .phone {
+    aspect-ratio: 9 / 16;
+    background: linear-gradient(165deg, #2a4775, #15243F 60%);
+    border-radius: 28px;
+    border: 1px solid rgba(201,165,92,0.25);
+    padding: 18px 14px 14px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 30px 60px -30px rgba(0,0,0,0.6);
+  }
+  .phone-status {
+    display: flex; justify-content: space-between;
+    font-family: var(--mono); font-size: 9px; color: rgba(241,232,211,0.8);
+    margin-bottom: 12px;
+  }
+  .phone-time {
+    text-align: center;
+    font-family: var(--serif); font-size: 32px; color: var(--washi); font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .phone-date {
+    text-align: center;
+    font-family: var(--serif); font-size: 11px; color: rgba(217,188,133,0.85);
+    margin-bottom: 18px;
+  }
+  .home-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 6px;
+  }
+  .home-cell {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .home-cell .ic-slot {
+    width: 100%; aspect-ratio: 1;
+    border-radius: 22%;
+    background: rgba(241,232,211,0.06);
+    border: 0.5px solid rgba(201,165,92,0.18);
+    overflow: hidden;
+  }
+  .home-cell.is-our .ic-slot {
+    background: transparent; border: none;
+    box-shadow: 0 4px 10px -2px rgba(0,0,0,0.4);
+  }
+  .home-cell .lbl {
+    font-family: var(--sans); font-size: 7px; color: rgba(241,232,211,0.75);
+    text-align: center; line-height: 1.2;
+  }
+  .home-cell.is-our .lbl {
+    color: var(--brass); font-weight: 700;
+  }
+  .phone .caption {
+    position: absolute; bottom: 10px; left: 0; right: 0;
+    text-align: center; font-family: var(--mono); font-size: 9px;
+    color: var(--brass); letter-spacing: 2px;
+  }
+
+  /* Notes section */
+  .notes {
+    margin-top: 56px; padding: 24px 28px;
+    background: #fbf6e9; border: 1px dashed var(--rule); border-radius: 12px;
+    font-family: var(--serif); font-size: 13px; line-height: 1.8; color: var(--ink);
+  }
+  .notes h3 {
+    font-family: var(--serif); font-size: 14px; color: var(--brassDk);
+    letter-spacing: 3px; margin: 0 0 8px; font-weight: 600;
+  }
+  .notes ul { margin: 0; padding-left: 18px; }
+  .notes li { margin-bottom: 4px; }
+  .notes b { color: var(--indigo); }
+</style>
+</head>
+<body style="font-family: &quot;Shippori Mincho&quot;">
+<div class="container">
+
+  <!-- Masthead -->
+  <div class="masthead">
+    <div class="left">
+      <div class="eyebrow">APP ICON · 八案</div>
+      <h1>家計簿の<span class="accent">印</span></h1>
+      <div class="sub">藍染（あいぞめ）バージョンの家計簿アプリのアイコン探索 — 麻の葉、家紋、判子、小判、円相など、伝統的な意匠を題材に8案。すべて藍 × 真鍮 × 和紙の同一パレットで作成。</div>
+    </div>
+    <div class="right">
+      VOL.II<b>霜月二十五日</b>
+      <span style="margin-top:6px; display:block">v0.1 · indigo &amp; brass</span>
+    </div>
+  </div>
+
+  <!-- Reusable icon SVG defs are inlined per card. Each is a self-contained
+       1024×1024 viewBox with squircle clip. -->
+
+  <div class="grid">
+
+    <!-- 01 — 家紋風: 麻の葉 + 家 mincho -->
+    <div class="card">
+      <div class="card-header">
+        <div class="name">麻の葉に家 <span class="en">ASANOHA · IE</span></div>
+        <div class="num">01 / 08</div>
+      </div>
+      <div class="card-body">
+        <svg class="hero-icon" viewBox="0 0 1024 1024">
+          <defs>
+            <clipPath id="sq01"><rect x="0" y="0" width="1024" height="1024" rx="225" ry="225"/></clipPath>
+            <linearGradient id="bg01" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#1f3358"/><stop offset="1" stop-color="#0e1729"/>
+            </linearGradient>
+            <pattern id="asa01" width="128" height="128" patternUnits="userSpaceOnUse">
+              <g stroke="#c9a55c" stroke-opacity="0.32" fill="none" stroke-width="1.2">
+                <path d="M0 64 L64 0 L128 64 L64 128 Z"/>
+                <path d="M0 64 L64 64 L64 0 M64 64 L128 64 M64 64 L64 128"/>
+              </g>
+            </pattern>
+          </defs>
+          <g clip-path="url(#sq01)">
+            <rect width="1024" height="1024" fill="url(#bg01)"/>
+            <rect width="1024" height="1024" fill="url(#asa01)"/>
+            <!-- Brass medallion circle -->
+            <circle cx="512" cy="512" r="280" fill="none" stroke="#C9A55C" stroke-width="6"/>
+            <circle cx="512" cy="512" r="260" fill="#15243F" fill-opacity="0.55"/>
+            <text x="512" y="640" text-anchor="middle" font-family="'Shippori Mincho', serif" font-size="380" font-weight="600" fill="#F1E8D3">家</text>
+          </g>
+        </svg>
+        <div class="meta">
+          <div class="desc">伝統文様の<b>麻の葉</b>を全面に敷き、中央に真鍮の円窓と明朝の「<b>家</b>」。家紋を彷彿とさせ、家族で使う家計簿としての温かさが伝わる。</div>
+          <div class="swatches">
+            <div class="swatch" data-hex="#15243F" style="background:#15243F"></div>
+            <div class="swatch" data-hex="#C9A55C" style="background:#C9A55C"></div>
+            <div class="swatch" data-hex="#F1E8D3" style="background:#F1E8D3"></div>
+          </div>
+          <div class="scale-row">
+            <div class="size-chip"><svg class="ic" width="60" height="60" viewBox="0 0 1024 1024"><use href="#__c01"/></svg><span>60</span></div>
+            <div class="size-chip"><svg class="ic" width="40" height="40" viewBox="0 0 1024 1024"><use href="#__c01"/></svg><span>40</span></div>
+            <div class="size-chip"><svg class="ic" width="29" height="29" viewBox="0 0 1024 1024"><use href="#__c01"/></svg><span>29</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 02 — 小判 (Koban) coin -->
+    <div class="card">
+      <div class="card-header">
+        <div class="name">小判 <span class="en">KOBAN · GOLD COIN</span></div>
+        <div class="num">02 / 08</div>
+      </div>
+      <div class="card-body">
+        <svg class="hero-icon" viewBox="0 0 1024 1024">
+          <defs>
+            <clipPath id="sq02"><rect x="0" y="0" width="1024" height="1024" rx="225" ry="225"/></clipPath>
+            <linearGradient id="bg02" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#1a2c4e"/><stop offset="1" stop-color="#15243F"/>
+            </linearGradient>
+            <linearGradient id="goldKoban" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#E2C684"/>
+              <stop offset="0.5" stop-color="#C9A55C"/>
+              <stop offset="1" stop-color="#9C7E40"/>
+            </linearGradient>
+          </defs>
+          <g clip-path="url(#sq02)">
+            <rect width="1024" height="1024" fill="url(#bg02)"/>
+            <!-- Subtle radial -->
+            <circle cx="512" cy="512" r="500" fill="#C9A55C" fill-opacity="0.05"/>
+            <!-- Koban oval -->
+            <ellipse cx="512" cy="512" rx="280" ry="400" fill="url(#goldKoban)" transform="rotate(-12 512 512)"/>
+            <ellipse cx="512" cy="512" rx="260" ry="380" fill="none" stroke="#9C7E40" stroke-width="3" transform="rotate(-12 512 512)"/>
+            <!-- Diagonal hatching (saidan) like real koban -->
+            <g transform="rotate(-12 512 512)" clip-path="url(#kobanClip)">
+              <g stroke="#9C7E40" stroke-opacity="0.35" stroke-width="1.5">
+                <line x1="252" y1="200" x2="772" y2="200"/>
+                <line x1="252" y1="230" x2="772" y2="230"/>
+                <line x1="252" y1="794" x2="772" y2="794"/>
+                <line x1="252" y1="824" x2="772" y2="824"/>
+              </g>
+            </g>
+            <clipPath id="kobanClip"><ellipse cx="512" cy="512" rx="260" ry="380"/></clipPath>
+            <!-- ¥ symbol stamped -->
+            <text x="512" y="520" text-anchor="middle" dominant-baseline="middle" font-family="'Shippori Mincho', serif" font-size="320" font-weight="700" fill="#15243F" transform="rotate(-12 512 512)">¥</text>
+            <!-- top stamp dot -->
+            <circle cx="442" cy="222" r="14" fill="#15243F" transform="rotate(-12 512 512)"/>
+            <circle cx="582" cy="802" r="14" fill="#15243F" transform="rotate(-12 512 512)"/>
+          </g>
+        </svg>
+        <div class="meta">
+          <div class="desc">江戸時代の<b>小判</b>を象徴に。真鍮グラデーションで金の重みを表現、¥の極太明朝が一点物の刻印感を出す。お金そのものを直接連想させる強さ。</div>
+          <div class="swatches">
+            <div class="swatch" data-hex="#15243F" style="background:#15243F"></div>
+            <div class="swatch" data-hex="#C9A55C" style="background:linear-gradient(180deg,#E2C684,#9C7E40)"></div>
+          </div>
+          <div class="scale-row">
+            <div class="size-chip"><svg class="ic" width="60" height="60" viewBox="0 0 1024 1024"><use href="#__c02"/></svg><span>60</span></div>
+            <div class="size-chip"><svg class="ic" width="40" height="40" viewBox="0 0 1024 1024"><use href="#__c02"/></svg><span>40</span></div>
+            <div class="size-chip"><svg class="ic" width="29" height="29" viewBox="0 0 1024 1024"><use href="#__c02"/></svg><span>29</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 — 簿 brush stroke -->
+    <div class="card">
+      <div class="card-header">
+        <div class="name">簿の一筆 <span class="en">BO · BRUSHED</span></div>
+        <div class="num">03 / 08</div>
+      </div>
+      <div class="card-body">
+        <svg class="hero-icon" viewBox="0 0 1024 1024">
+          <defs>
+            <clipPath id="sq03"><rect width="1024" height="1024" rx="225" ry="225"/></clipPath>
+            <linearGradient id="bg03" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#F1E8D3"/>
+              <stop offset="1" stop-color="#E8DCC0"/>
+            </linearGradient>
+            <pattern id="paper03" x="0" y="0" width="200" height="200" patternUnits="userSpaceOnUse">
+              <rect width="200" height="200" fill="transparent"/>
+              <g stroke="#a8884a" stroke-opacity="0.05" stroke-width="0.8">
+                <line x1="0" y1="40" x2="200" y2="40"/>
+                <line x1="0" y1="80" x2="200" y2="80"/>
+                <line x1="0" y1="120" x2="200" y2="120"/>
+                <line x1="0" y1="160" x2="200" y2="160"/>
+              </g>
+            </pattern>
+          </defs>
+          <g clip-path="url(#sq03)">
+            <rect width="1024" height="1024" fill="url(#bg03)"/>
+            <rect width="1024" height="1024" fill="url(#paper03)"/>
+            <!-- subtle border frame -->
+            <rect x="60" y="60" width="904" height="904" fill="none" stroke="#15243F" stroke-opacity="0.12" stroke-width="2"/>
+            <!-- 簿 character — large brush mincho -->
+            <text x="512" y="720" text-anchor="middle" font-family="'Shippori Mincho', serif" font-weight="800" font-size="680" fill="#15243F" letter-spacing="0">簿</text>
+            <!-- Red seal accent bottom right -->
+            <g transform="translate(820 820)">
+              <rect x="-50" y="-50" width="100" height="100" fill="#B4322A"/>
+              <text x="0" y="14" text-anchor="middle" font-family="'Shippori Mincho', serif" font-weight="700" font-size="50" fill="#F1E8D3">家</text>
+            </g>
+          </g>
+        </svg>
+        <div class="meta">
+          <div class="desc">和紙の地に<b>「簿」</b>の一文字を堂々と。罫線が走る帳簿の暗示と、右下の朱印（家の判子）が「家計簿」の意味を完成させる。書物的、辞書的な品格。</div>
+          <div class="swatches">
+            <div class="swatch" data-hex="#F1E8D3" style="background:#F1E8D3"></div>
+            <div class="swatch" data-hex="#15243F" style="background:#15243F"></div>
+            <div class="swatch" data-hex="#B4322A" style="background:#B4322A"></div>
+          </div>
+          <div class="scale-row">
+            <div class="size-chip"><svg class="ic" width="60" height="60" viewBox="0 0 1024 1024"><use href="#__c03"/></svg><span>60</span></div>
+            <div class="size-chip"><svg class="ic" width="40" height="40" viewBox="0 0 1024 1024"><use href="#__c03"/></svg><span>40</span></div>
+            <div class="size-chip"><svg class="ic" width="29" height="29" viewBox="0 0 1024 1024"><use href="#__c03"/></svg><span>29</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 04 — 円相 (Enso) Zen circle -->
+    <div class="card">
+      <div class="card-header">
+        <div class="name">円相 <span class="en">ENSO · ZEN CIRCLE</span></div>
+        <div class="num">04 / 08</div>
+      </div>
+      <div class="card-body">
+        <svg class="hero-icon" viewBox="0 0 1024 1024">
+          <defs>
+            <clipPath id="sq04"><rect width="1024" height="1024" rx="225" ry="225"/></clipPath>
+            <linearGradient id="bg04" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#15243F"/><stop offset="1" stop-color="#0a1320"/>
+            </linearGradient>
+          </defs>
+          <g clip-path="url(#sq04)">
+            <rect width="1024" height="1024" fill="url(#bg04)"/>
+            <!-- Enso brushstroke circle with gap (a real enso has an opening) -->
+            <g transform="rotate(-30 512 512)">
+              <!-- thick irregular ring done as path with stroke -->
+              <path d="
+                M 512 192
+                A 320 320 0 1 1 320 480
+              " fill="none" stroke="#C9A55C" stroke-width="62" stroke-linecap="round"/>
+              <!-- Add brushy taper effect with overlay strokes -->
+              <path d="
+                M 512 192
+                A 320 320 0 1 1 320 480
+              " fill="none" stroke="#E2C684" stroke-width="20" stroke-linecap="round" opacity="0.4"/>
+            </g>
+            <!-- ¥ at center -->
+            <text x="512" y="540" text-anchor="middle" dominant-baseline="middle" font-family="'Shippori Mincho', serif" font-size="220" font-weight="500" fill="#F1E8D3" letter-spacing="-4">¥</text>
+            <!-- tiny brass dot bottom -->
+            <circle cx="512" cy="700" r="4" fill="#C9A55C"/>
+          </g>
+        </svg>
+        <div class="meta">
+          <div class="desc">禅の<b>円相</b> — 不完全さを良しとする思想。家計の「あけっぴろげな円」の中に¥。お金との健やかな距離感を伝える、思索的なアイコン。</div>
+          <div class="swatches">
+            <div class="swatch" data-hex="#15243F" style="background:#15243F"></div>
+            <div class="swatch" data-hex="#C9A55C" style="background:#C9A55C"></div>
+            <div class="swatch" data-hex="#F1E8D3" style="background:#F1E8D3"></div>
+          </div>
+          <div class="scale-row">
+            <div class="size-chip"><svg class="ic" width="60" height="60" viewBox="0 0 1024 1024"><use href="#__c04"/></svg><span>60</span></div>
+            <div class="size-chip"><svg class="ic" width="40" height="40" viewBox="0 0 1024 1024"><use href="#__c04"/></svg><span>40</span></div>
+            <div class="size-chip"><svg class="ic" width="29" height="29" viewBox="0 0 1024 1024"><use href="#__c04"/></svg><span>29</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 05 — 積み上げ Modern bar + asanoha hybrid -->
+    <div class="card">
+      <div class="card-header">
+        <div class="name">積み上げ <span class="en">TSUMI-AGE · STACKS</span></div>
+        <div class="num">05 / 08</div>
+      </div>
+      <div class="card-body">
+        <svg class="hero-icon" viewBox="0 0 1024 1024">
+          <defs>
+            <clipPath id="sq05"><rect width="1024" height="1024" rx="225" ry="225"/></clipPath>
+            <linearGradient id="bg05" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#1f3358"/>
+              <stop offset="1" stop-color="#0e1729"/>
+            </linearGradient>
+          </defs>
+          <g clip-path="url(#sq05)">
+            <rect width="1024" height="1024" fill="url(#bg05)"/>
+            <!-- subtle asanoha bottom only -->
+            <g opacity="0.2" stroke="#c9a55c" fill="none" stroke-width="1">
+              <path d="M 0 920 L 64 856 L 128 920 L 64 984 Z M 128 920 L 192 856 L 256 920 L 192 984 Z M 256 920 L 320 856 L 384 920 L 320 984 Z M 384 920 L 448 856 L 512 920 L 448 984 Z M 512 920 L 576 856 L 640 920 L 576 984 Z M 640 920 L 704 856 L 768 920 L 704 984 Z M 768 920 L 832 856 L 896 920 L 832 984 Z M 896 920 L 960 856 L 1024 920 L 960 984 Z"/>
+            </g>
+            <!-- Bars representing tsumiage — growth -->
+            <g>
+              <rect x="220" y="640" width="100" height="160" rx="8" fill="#5a6b87"/>
+              <rect x="346" y="540" width="100" height="260" rx="8" fill="#7e8aa3"/>
+              <rect x="472" y="420" width="100" height="380" rx="8" fill="#D9BC85"/>
+              <rect x="598" y="320" width="100" height="480" rx="8" fill="#C9A55C"/>
+              <rect x="724" y="220" width="100" height="580" rx="8" fill="#E2C684"/>
+            </g>
+            <!-- baseline -->
+            <line x1="160" y1="800" x2="864" y2="800" stroke="#C9A55C" stroke-width="3"/>
+            <!-- ¥ small top -->
+            <text x="200" y="280" text-anchor="middle" font-family="'Shippori Mincho', serif" font-size="120" fill="#C9A55C" font-weight="500">¥</text>
+          </g>
+        </svg>
+        <div class="meta">
+          <div class="desc">伝統文様と現代的なバーチャートのハイブリッド。<b>家計の積み上げ</b>を可視化、家計簿アプリの本質的な機能を意匠化。最も「アプリらしい」一案。</div>
+          <div class="swatches">
+            <div class="swatch" data-hex="#15243F" style="background:#15243F"></div>
+            <div class="swatch" data-hex="#C9A55C" style="background:#C9A55C"></div>
+            <div class="swatch" data-hex="#7e8aa3" style="background:#7e8aa3"></div>
+          </div>
+          <div class="scale-row">
+            <div class="size-chip"><svg class="ic" width="60" height="60" viewBox="0 0 1024 1024"><use href="#__c05"/></svg><span>60</span></div>
+            <div class="size-chip"><svg class="ic" width="40" height="40" viewBox="0 0 1024 1024"><use href="#__c05"/></svg><span>40</span></div>
+            <div class="size-chip"><svg class="ic" width="29" height="29" viewBox="0 0 1024 1024"><use href="#__c05"/></svg><span>29</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 06 — 判子 Stamp -->
+    <div class="card">
+      <div class="card-header">
+        <div class="name">判子 <span class="en">HANKO · SEAL</span></div>
+        <div class="num">06 / 08</div>
+      </div>
+      <div class="card-body">
+        <svg class="hero-icon" viewBox="0 0 1024 1024">
+          <defs>
+            <clipPath id="sq06"><rect width="1024" height="1024" rx="225" ry="225"/></clipPath>
+            <pattern id="paper06" x="0" y="0" width="6" height="6" patternUnits="userSpaceOnUse">
+              <rect width="6" height="6" fill="#F1E8D3"/>
+              <circle cx="3" cy="3" r="0.5" fill="#a8884a" fill-opacity="0.15"/>
+            </pattern>
+          </defs>
+          <g clip-path="url(#sq06)">
+            <rect width="1024" height="1024" fill="url(#paper06)"/>
+            <!-- main seal — circle with thick border -->
+            <g transform="rotate(-4 512 512)">
+              <circle cx="512" cy="512" r="320" fill="none" stroke="#B4322A" stroke-width="40"/>
+              <!-- characters: 家計簿 in 篆書-ish stylization (use bold mincho stacked) -->
+              <text x="512" y="430" text-anchor="middle" font-family="'Shippori Mincho', serif" font-size="180" font-weight="800" fill="#B4322A" letter-spacing="-2">家</text>
+              <text x="380" y="612" text-anchor="middle" font-family="'Shippori Mincho', serif" font-size="160" font-weight="800" fill="#B4322A">計</text>
+              <text x="640" y="612" text-anchor="middle" font-family="'Shippori Mincho', serif" font-size="160" font-weight="800" fill="#B4322A">簿</text>
+              <!-- imperfection: small "ink missing" specks -->
+              <circle cx="710" cy="350" r="6" fill="#F1E8D3"/>
+              <circle cx="320" cy="700" r="4" fill="#F1E8D3"/>
+              <ellipse cx="290" cy="500" rx="3" ry="8" fill="#F1E8D3"/>
+            </g>
+          </g>
+        </svg>
+        <div class="meta">
+          <div class="desc">和紙に押された朱の<b>判子</b>そのものをアイコンに。「家計簿」の三文字、不完全なインクのカスれが本物らしい。藍染シリーズの中で唯一朱を主役にした強烈な一案。</div>
+          <div class="swatches">
+            <div class="swatch" data-hex="#F1E8D3" style="background:#F1E8D3"></div>
+            <div class="swatch" data-hex="#B4322A" style="background:#B4322A"></div>
+          </div>
+          <div class="scale-row">
+            <div class="size-chip"><svg class="ic" width="60" height="60" viewBox="0 0 1024 1024"><use href="#__c06"/></svg><span>60</span></div>
+            <div class="size-chip"><svg class="ic" width="40" height="40" viewBox="0 0 1024 1024"><use href="#__c06"/></svg><span>40</span></div>
+            <div class="size-chip"><svg class="ic" width="29" height="29" viewBox="0 0 1024 1024"><use href="#__c06"/></svg><span>29</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 07 — 暖簾 Noren split -->
+    <div class="card">
+      <div class="card-header">
+        <div class="name">暖簾 <span class="en">NOREN · SHOP CURTAIN</span></div>
+        <div class="num">07 / 08</div>
+      </div>
+      <div class="card-body">
+        <svg class="hero-icon" viewBox="0 0 1024 1024">
+          <defs>
+            <clipPath id="sq07"><rect width="1024" height="1024" rx="225" ry="225"/></clipPath>
+            <linearGradient id="bg07" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#F1E8D3"/>
+              <stop offset="1" stop-color="#d4c39e"/>
+            </linearGradient>
+          </defs>
+          <g clip-path="url(#sq07)">
+            <rect width="1024" height="1024" fill="url(#bg07)"/>
+            <!-- Rod -->
+            <rect x="80" y="180" width="864" height="28" fill="#15243F"/>
+            <!-- Left noren panel -->
+            <path d="M 130 208 L 130 870 Q 280 860, 480 870 L 480 208 Z" fill="#15243F"/>
+            <!-- Right noren panel -->
+            <path d="M 544 208 L 544 870 Q 740 860, 894 870 L 894 208 Z" fill="#15243F"/>
+            <!-- Noren slit / gap with subtle inner shadow -->
+            <rect x="480" y="208" width="64" height="700" fill="url(#bg07)" />
+            <!-- ¥ on left, 簿 on right or both characters split -->
+            <text x="305" y="500" text-anchor="middle" font-family="'Shippori Mincho', serif" font-size="280" font-weight="700" fill="#F1E8D3">家</text>
+            <text x="718" y="500" text-anchor="middle" font-family="'Shippori Mincho', serif" font-size="280" font-weight="700" fill="#F1E8D3">計</text>
+            <!-- bottom slight wave on each panel — already done -->
+            <!-- brass tassels at top -->
+            <circle cx="170" cy="195" r="9" fill="#C9A55C"/>
+            <circle cx="855" cy="195" r="9" fill="#C9A55C"/>
+          </g>
+        </svg>
+        <div class="meta">
+          <div class="desc">店先の<b>暖簾</b>を見立てた、最も日本らしい意匠の一つ。「家」「計」が左右に割れ、アプリを開く＝暖簾をくぐる感覚を演出。店舗・お金・日常感の象徴。</div>
+          <div class="swatches">
+            <div class="swatch" data-hex="#15243F" style="background:#15243F"></div>
+            <div class="swatch" data-hex="#F1E8D3" style="background:#F1E8D3"></div>
+            <div class="swatch" data-hex="#C9A55C" style="background:#C9A55C"></div>
+          </div>
+          <div class="scale-row">
+            <div class="size-chip"><svg class="ic" width="60" height="60" viewBox="0 0 1024 1024"><use href="#__c07"/></svg><span>60</span></div>
+            <div class="size-chip"><svg class="ic" width="40" height="40" viewBox="0 0 1024 1024"><use href="#__c07"/></svg><span>40</span></div>
+            <div class="size-chip"><svg class="ic" width="29" height="29" viewBox="0 0 1024 1024"><use href="#__c07"/></svg><span>29</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 08 — 算木 Sangi counting rods -->
+    <div class="card">
+      <div class="card-header">
+        <div class="name">算木 <span class="en">SANGI · ABACUS RODS</span></div>
+        <div class="num">08 / 08</div>
+      </div>
+      <div class="card-body">
+        <svg class="hero-icon" viewBox="0 0 1024 1024">
+          <defs>
+            <clipPath id="sq08"><rect width="1024" height="1024" rx="225" ry="225"/></clipPath>
+            <linearGradient id="bg08" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#15243F"/>
+              <stop offset="1" stop-color="#1a2c4e"/>
+            </linearGradient>
+          </defs>
+          <g clip-path="url(#sq08)">
+            <rect width="1024" height="1024" fill="url(#bg08)"/>
+            <!-- frame -->
+            <rect x="180" y="180" width="664" height="664" rx="12" fill="none" stroke="#C9A55C" stroke-opacity="0.3" stroke-width="2"/>
+            <!-- Sangi counting rods arranged like the digit "5" (¥5,000 hint)-->
+            <!-- vertical 1's place -->
+            <g fill="#C9A55C">
+              <rect x="280" y="320" width="48" height="200" rx="6"/>
+              <rect x="280" y="540" width="48" height="200" rx="6"/>
+            </g>
+            <g fill="#D9BC85">
+              <rect x="360" y="320" width="48" height="200" rx="6"/>
+              <rect x="360" y="540" width="48" height="200" rx="6"/>
+            </g>
+            <!-- horizontal one -->
+            <g fill="#F1E8D3">
+              <rect x="280" y="430" width="200" height="48" rx="6"/>
+            </g>
+            <!-- 10's place — different orientation -->
+            <g fill="#E2C684">
+              <rect x="600" y="320" width="48" height="200" rx="6"/>
+              <rect x="680" y="320" width="48" height="200" rx="6"/>
+              <rect x="760" y="320" width="48" height="200" rx="6"/>
+            </g>
+            <g fill="#F1E8D3">
+              <rect x="600" y="600" width="48" height="200" rx="6"/>
+              <rect x="680" y="540" width="48" height="200" rx="6"/>
+            </g>
+            <!-- tiny ¥ in corner -->
+            <text x="220" y="240" font-family="'Shippori Mincho', serif" font-size="56" fill="#C9A55C">¥</text>
+          </g>
+        </svg>
+        <div class="meta">
+          <div class="desc">和算の<b>算木（さんぎ）</b> — 江戸時代の計算棒。数を表す並びを抽象化して、計算する道具としての家計簿を強調。最もコンセプチュアルな一案。</div>
+          <div class="swatches">
+            <div class="swatch" data-hex="#15243F" style="background:#15243F"></div>
+            <div class="swatch" data-hex="#C9A55C" style="background:#C9A55C"></div>
+            <div class="swatch" data-hex="#F1E8D3" style="background:#F1E8D3"></div>
+          </div>
+          <div class="scale-row">
+            <div class="size-chip"><svg class="ic" width="60" height="60" viewBox="0 0 1024 1024"><use href="#__c08"/></svg><span>60</span></div>
+            <div class="size-chip"><svg class="ic" width="40" height="40" viewBox="0 0 1024 1024"><use href="#__c08"/></svg><span>40</span></div>
+            <div class="size-chip"><svg class="ic" width="29" height="29" viewBox="0 0 1024 1024"><use href="#__c08"/></svg><span>29</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─────────────── Home screen contextual preview ─────────────── -->
+  <div class="homescreen-section">
+    <h2>iOSホーム画面 <span class="en">CONTEXTUAL PREVIEW</span></h2>
+    <p>実機サイズ感のシミュレーション。各案を周囲のアプリ群と並べたとき、識別性と存在感のバランスを確認。</p>
+
+    <div class="phones" id="phones"></div>
+  </div>
+
+  <div class="notes">
+    <h3>NOTES · 次の検討事項</h3>
+    <ul>
+      <li><b>視認性</b> — 29px サイズ（通知・設定一覧）まで見て、文字の潰れない案は ①麻の葉に家、④円相、⑤積み上げ、⑥判子。「簿」「算木」は中サイズ以上が望ましい。</li>
+      <li><b>パレット統一</b> — 全案を藍×真鍮×和紙の同一三色で構成。⑥判子のみ朱を主役にして例外。アプリの中身（藍染版）とトーン整合済み。</li>
+      <li><b>次の一手</b> — 気に入った1〜2案を絞り、ダーク/ライト切替、Apple Watchアプリアイコン、App Store用1024px最終版、スプラッシュ画面への展開ができます。</li>
+    </ul>
+  </div>
+</div>
+
+<!-- Hidden defs for re-using icon SVGs at small sizes -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- We duplicate the icon contents into symbols. To keep the file size
+         manageable, we re-reference each card's content by id. -->
+    <symbol id="__c01" viewBox="0 0 1024 1024"><use href="#hero01"/></symbol>
+    <symbol id="__c02" viewBox="0 0 1024 1024"><use href="#hero02"/></symbol>
+    <symbol id="__c03" viewBox="0 0 1024 1024"><use href="#hero03"/></symbol>
+    <symbol id="__c04" viewBox="0 0 1024 1024"><use href="#hero04"/></symbol>
+    <symbol id="__c05" viewBox="0 0 1024 1024"><use href="#hero05"/></symbol>
+    <symbol id="__c06" viewBox="0 0 1024 1024"><use href="#hero06"/></symbol>
+    <symbol id="__c07" viewBox="0 0 1024 1024"><use href="#hero07"/></symbol>
+    <symbol id="__c08" viewBox="0 0 1024 1024"><use href="#hero08"/></symbol>
+  </defs>
+</svg>
+
+<script>
+  // Build phone previews. Each phone showcases one icon among real iOS apps.
+  // We clone the hero <svg> at small size for each.
+
+  const ICONS = [
+    { name: '麻の葉に家', file: '#__c01', selIdx: 0 },
+    { name: '小判',       file: '#__c02', selIdx: 0 },
+    { name: '簿の一筆',   file: '#__c03', selIdx: 0 },
+    { name: '円相',       file: '#__c04', selIdx: 0 },
+    { name: '積み上げ',   file: '#__c05', selIdx: 0 },
+    { name: '判子',       file: '#__c06', selIdx: 0 },
+    { name: '暖簾',       file: '#__c07', selIdx: 0 },
+    { name: '算木',       file: '#__c08', selIdx: 0 },
+  ];
+
+  // First, give each hero <svg> a stable id we can <use> from.
+  document.querySelectorAll('.hero-icon').forEach((svg, i) => {
+    // The original svg's <g clip-path="url(#sqXX)"> is the actual content.
+    // We'll wrap the SVG inner content with id = heroNN and reference that.
+    const id = 'hero' + String(i + 1).padStart(2, '0');
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('id', id);
+    // move children of <svg> into g
+    while (svg.firstChild) g.appendChild(svg.firstChild);
+    svg.appendChild(g);
+  });
+
+  // Now build phones. Each phone places target icon at position 6 (center of grid).
+  const APPS = [
+    { n: 'メッセージ',   bg: '#34C759', glyph: '💬' },
+    { n: 'カメラ',       bg: '#1c1c1e', glyph: '📷' },
+    { n: 'Safari',      bg: '#4D86FB', glyph: '🧭' },
+    { n: '時計',         bg: '#1c1c1e', glyph: '⏰' },
+    { n: 'マップ',       bg: '#A8DFA9', glyph: '🗺️' },
+    { n: '写真',         bg: '#fff',    glyph: '🌸' },
+    { n: '天気',         bg: '#4DA3FF', glyph: '⛅' },
+    { n: 'カレンダー',   bg: '#fff',    glyph: '15' },
+    { n: 'メモ',         bg: '#FEF1B0', glyph: '📒' },
+    { n: 'リマインダー', bg: '#fff',    glyph: '☑️' },
+    { n: '設定',         bg: '#8e8e93', glyph: '⚙️' },
+  ];
+
+  const phonesEl = document.getElementById('phones');
+  ICONS.forEach((ic, idx) => {
+    const phone = document.createElement('div');
+    phone.className = 'phone';
+    phone.innerHTML = `
+      <div class="phone-status"><span>9:41</span><span>●●●</span></div>
+      <div class="phone-time">9:41</div>
+      <div class="phone-date">霜月十五日　土曜日</div>
+      <div class="home-grid"></div>
+      <div class="caption">案 0${idx + 1} · ${ic.name}</div>
+    `;
+    const grid = phone.querySelector('.home-grid');
+    // 4×3 grid = 12 cells; our app at index 5 (center-ish row 2 col 2)
+    const ourPos = 5;
+    for (let i = 0; i < 12; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'home-cell' + (i === ourPos ? ' is-our' : '');
+      const slot = document.createElement('div');
+      slot.className = 'ic-slot';
+      if (i === ourPos) {
+        const heroId = 'hero' + String(idx + 1).padStart(2, '0');
+        slot.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 1024 1024" preserveAspectRatio="xMidYMid meet"><use href="#${heroId}"/></svg>`;
+      } else {
+        const app = APPS[i % APPS.length];
+        slot.style.background = app.bg;
+        slot.style.display = 'flex';
+        slot.style.alignItems = 'center';
+        slot.style.justifyContent = 'center';
+        slot.style.fontSize = '18px';
+        slot.textContent = app.glyph;
+      }
+      const lbl = document.createElement('div');
+      lbl.className = 'lbl';
+      lbl.textContent = i === ourPos ? '家計簿' : APPS[i % APPS.length].n;
+      cell.appendChild(slot);
+      cell.appendChild(lbl);
+      grid.appendChild(cell);
+    }
+    phonesEl.appendChild(phone);
+  });
+</script>
+</body>
+</html>
