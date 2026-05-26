@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>利用規約 — 家計簿</title>
+<style>
+  :root { --indigo: #15243F; --washi: #F1E8D3; --brass: #C9A55C; --rule: #cdb98e; --text: #333; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+         color: var(--text); background: var(--washi); line-height: 1.8; }
+  .header { background: var(--indigo); color: var(--washi); padding: 32px 20px; text-align: center; }
+  .header h1 { font-size: 22px; font-weight: 600; }
+  .header p { font-size: 13px; margin-top: 8px; opacity: 0.7; }
+  .container { max-width: 720px; margin: 0 auto; padding: 32px 20px 64px; }
+  h2 { font-size: 17px; color: var(--indigo); margin: 32px 0 12px;
+       padding-bottom: 6px; border-bottom: 2px solid var(--brass); }
+  p, li { font-size: 14px; margin-bottom: 8px; }
+  ul, ol { padding-left: 24px; margin-bottom: 12px; }
+  .note { background: #fff; border-left: 4px solid var(--brass); padding: 12px 16px;
+          margin: 16px 0; font-size: 13px; border-radius: 0 4px 4px 0; }
+  a { color: var(--brass); }
+  .footer { text-align: center; font-size: 12px; color: #888; padding: 24px 20px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>利用規約</h1>
+  <p>家計簿（com.moriya.kakeibo）</p>
+</div>
+
+<div class="container">
+
+<p>この利用規約（以下「本規約」）は、守屋（以下「開発者」）が提供する家計簿（以下「本アプリ」）の利用条件を定めるものです。ユーザーの皆様には、本規約に同意のうえ、本アプリをご利用いただきます。</p>
+
+<h2>第1条（適用）</h2>
+<ol>
+  <li>本規約は、ユーザーと開発者との間の本アプリの利用に関わる一切の関係に適用されます。</li>
+  <li>本アプリをダウンロードまたは利用した時点で、ユーザーは本規約に同意したものとみなします。</li>
+</ol>
+
+<h2>第2条（サービス内容）</h2>
+<p>本アプリは、以下の機能を提供する家計簿アプリケーションです。</p>
+<ol>
+  <li>収入・支出の記録・管理</li>
+  <li>カテゴリ別の支出分析（チャート表示）</li>
+  <li>レシート画像のAI解析による自動入力（OCR機能）</li>
+  <li>家族グループでの収支共有</li>
+  <li>カレンダー表示による日別収支の確認</li>
+  <li>支出推移・ペース予測の表示</li>
+</ol>
+
+<h2>第3条（アカウント）</h2>
+<ol>
+  <li>本アプリは初回起動時に匿名アカウントを自動作成します。</li>
+  <li>ユーザーは任意でメールアドレスを登録し、アカウントを昇格できます。</li>
+  <li>メール登録により、機種変更時のデータ引き継ぎが可能になります。</li>
+  <li>ユーザーは自身のアカウント情報を適切に管理する責任を負います。</li>
+</ol>
+
+<h2>第4条（利用料金）</h2>
+<ol>
+  <li>本アプリの基本機能は無料でご利用いただけます。</li>
+  <li>本アプリ内に広告が表示される場合があります。</li>
+  <li>将来的に有料機能を追加する場合は、事前にアプリ内で告知いたします。</li>
+</ol>
+
+<h2>第5条（禁止事項）</h2>
+<p>ユーザーは、本アプリの利用にあたり、以下の行為を行ってはなりません。</p>
+<ol>
+  <li>法令または公序良俗に違反する行為</li>
+  <li>本アプリのサーバーやネットワークに過度な負荷をかける行為</li>
+  <li>本アプリの運営を妨害するおそれのある行為</li>
+  <li>他のユーザーの情報を不正に取得・利用する行為</li>
+  <li>本アプリのリバースエンジニアリング、逆コンパイル、逆アセンブルを行う行為</li>
+  <li>開発者の許可なく本アプリを商業目的で利用する行為</li>
+  <li>不正なアクセスまたは認証の回避を試みる行為</li>
+  <li>その他、開発者が不適切と判断する行為</li>
+</ol>
+
+<h2>第6条（OCR機能の利用）</h2>
+<ol>
+  <li>レシートOCR機能はAI（Claude API）を利用した自動解析であり、解析結果の正確性を保証するものではありません。</li>
+  <li>ユーザーは解析結果を確認・修正したうえで保存する責任を負います。</li>
+  <li>レシート画像はOCR解析の目的にのみ使用され、解析後にサーバーに保存されることはありません。</li>
+  <li>OCR機能の利用にはインターネット接続が必要です。</li>
+</ol>
+
+<h2>第7条（家族グループ機能）</h2>
+<ol>
+  <li>ユーザーは家族グループを作成し、他のユーザーを招待して収支データを共有できます。</li>
+  <li>グループに参加したユーザーは、グループ内の他メンバーの収支データを閲覧できます。</li>
+  <li>グループへの招待・参加は、ユーザー自身の判断と責任で行ってください。</li>
+</ol>
+
+<h2>第8条（知的財産権）</h2>
+<ol>
+  <li>本アプリに関する著作権、商標権その他の知的財産権は開発者に帰属します。</li>
+  <li>ユーザーが本アプリに入力したデータの権利はユーザーに帰属します。</li>
+</ol>
+
+<h2>第9条（免責事項）</h2>
+<ol>
+  <li>開発者は、本アプリの内容の正確性、完全性、有用性等について保証するものではありません。</li>
+  <li>本アプリの利用により生じた損害（データの消失、金銭的損害を含む）について、開発者は一切の責任を負いません。</li>
+  <li>本アプリは家計管理の補助を目的としており、税務・会計上のアドバイスを提供するものではありません。</li>
+  <li>通信環境やサーバーの状況により、本アプリが一時的に利用できない場合があります。</li>
+  <li>第三者サービス（Supabase、Anthropic、Google等）の障害・仕様変更等により、本アプリの一部機能が利用できなくなる可能性があります。</li>
+</ol>
+
+<h2>第10条（サービスの変更・中断・終了）</h2>
+<ol>
+  <li>開発者は、ユーザーに事前通知することなく、本アプリの内容を変更し、または提供を中断・終了できるものとします。</li>
+  <li>サービス終了の場合は、可能な限り事前にアプリ内またはアプリストアにて告知いたします。</li>
+</ol>
+
+<h2>第11条（利用規約の変更）</h2>
+<ol>
+  <li>開発者は、必要に応じて本規約を変更できるものとします。</li>
+  <li>変更後の利用規約は、本アプリ内または関連Webページに掲載した時点で効力を生じます。</li>
+  <li>変更後に本アプリを引き続き利用した場合、ユーザーは変更後の規約に同意したものとみなします。</li>
+</ol>
+
+<h2>第12条（準拠法・管轄）</h2>
+<ol>
+  <li>本規約の解釈にあたっては、日本法を準拠法とします。</li>
+  <li>本アプリに関して紛争が生じた場合は、開発者の所在地を管轄する裁判所を専属的合意管轄とします。</li>
+</ol>
+
+<h2>第13条（お問い合わせ）</h2>
+<p>本規約に関するお問い合わせは、以下の連絡先までお願いいたします。</p>
+<ul>
+  <li>開発者: 守屋</li>
+  <li>メール: <a href="mailto:moriya.ryoga@gmail.com">moriya.ryoga@gmail.com</a></li>
+</ul>
+
+<p style="margin-top: 32px; font-size: 13px; color: #888;">制定日: 2026年5月26日</p>
+
+</div>
+
+<div class="footer">
+  &copy; 2026 家計簿. All rights reserved.
+</div>
+
+</body>
+</html>

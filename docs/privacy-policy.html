@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>プライバシーポリシー — 家計簿</title>
+<style>
+  :root { --indigo: #15243F; --washi: #F1E8D3; --brass: #C9A55C; --rule: #cdb98e; --text: #333; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+         color: var(--text); background: var(--washi); line-height: 1.8; }
+  .header { background: var(--indigo); color: var(--washi); padding: 32px 20px; text-align: center; }
+  .header h1 { font-size: 22px; font-weight: 600; }
+  .header p { font-size: 13px; margin-top: 8px; opacity: 0.7; }
+  .container { max-width: 720px; margin: 0 auto; padding: 32px 20px 64px; }
+  h2 { font-size: 17px; color: var(--indigo); margin: 32px 0 12px;
+       padding-bottom: 6px; border-bottom: 2px solid var(--brass); }
+  h3 { font-size: 15px; color: var(--indigo); margin: 20px 0 8px; }
+  p, li { font-size: 14px; margin-bottom: 8px; }
+  ul, ol { padding-left: 24px; margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+  th, td { border: 1px solid var(--rule); padding: 8px 12px; text-align: left; }
+  th { background: var(--indigo); color: var(--washi); font-weight: 500; }
+  .note { background: #fff; border-left: 4px solid var(--brass); padding: 12px 16px;
+          margin: 16px 0; font-size: 13px; border-radius: 0 4px 4px 0; }
+  a { color: var(--brass); }
+  .footer { text-align: center; font-size: 12px; color: #888; padding: 24px 20px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>プライバシーポリシー</h1>
+  <p>家計簿（com.moriya.kakeibo）</p>
+</div>
+
+<div class="container">
+
+<p>守屋（以下「開発者」）は、家計簿（以下「本アプリ」）におけるユーザーの個人情報の取り扱いについて、以下のとおりプライバシーポリシーを定めます。</p>
+
+<h2>第1条（収集する情報）</h2>
+<p>本アプリでは、サービス提供のために以下の情報を収集します。</p>
+
+<table>
+  <tr><th>情報の種類</th><th>内容</th><th>収集目的</th></tr>
+  <tr><td>アカウント情報</td><td>メールアドレス（任意登録時）</td><td>認証・データ引き継ぎ</td></tr>
+  <tr><td>家計データ</td><td>収入・支出の金額、日付、カテゴリ、メモ</td><td>家計簿機能の提供</td></tr>
+  <tr><td>レシート画像</td><td>カメラ・写真ライブラリからの画像</td><td>OCR解析による自動入力</td></tr>
+  <tr><td>カテゴリアイコン</td><td>ユーザーが設定したアイコン画像</td><td>カテゴリ表示</td></tr>
+  <tr><td>グループ情報</td><td>家族グループ名、メンバー構成</td><td>家族間の収支共有</td></tr>
+  <tr><td>デバイス情報</td><td>プッシュ通知トークン</td><td>通知配信</td></tr>
+</table>
+
+<div class="note">
+  本アプリは初回起動時に匿名認証を使用します。メールアドレスの登録は任意であり、登録しなくてもアプリの全機能をご利用いただけます。
+</div>
+
+<h2>第2条（情報の利用目的）</h2>
+<p>収集した情報は、以下の目的にのみ利用します。</p>
+<ol>
+  <li>家計簿機能の提供・改善</li>
+  <li>レシート画像のOCR解析（AI処理）</li>
+  <li>家族グループ間のデータ共有</li>
+  <li>プッシュ通知の配信</li>
+  <li>広告の配信</li>
+  <li>アプリの不具合調査・改善</li>
+</ol>
+
+<h2>第3条（第三者サービスの利用）</h2>
+<p>本アプリでは、以下の第三者サービスを利用しています。各サービスは、それぞれのプライバシーポリシーに基づいて情報を取り扱います。</p>
+
+<h3>3-1. Supabase</h3>
+<p>データベース・認証基盤として利用しています。ユーザーの家計データはSupabaseのPostgreSQLデータベースに保存され、Row Level Security（RLS）により本人およびグループメンバーのみがアクセスできます。</p>
+<ul>
+  <li>提供元: Supabase Inc.</li>
+  <li>プライバシーポリシー: <a href="https://supabase.com/privacy" target="_blank">https://supabase.com/privacy</a></li>
+</ul>
+
+<h3>3-2. Anthropic（Claude API）</h3>
+<p>レシート画像のOCR解析にClaude APIを利用しています。画像データはSupabase Edge Function経由でAPIに送信され、解析後は保持されません。</p>
+<ul>
+  <li>提供元: Anthropic PBC</li>
+  <li>プライバシーポリシー: <a href="https://www.anthropic.com/privacy" target="_blank">https://www.anthropic.com/privacy</a></li>
+</ul>
+<div class="note">
+  レシート画像はBase64形式でAPIに送信されます。サーバーや端末にレシート画像ファイルは保存されません。
+</div>
+
+<h3>3-3. Google AdMob</h3>
+<p>広告配信のためにGoogle AdMobを利用しています。AdMobは広告配信の最適化のためにデバイス情報等を収集する場合があります。</p>
+<ul>
+  <li>提供元: Google LLC</li>
+  <li>プライバシーポリシー: <a href="https://policies.google.com/privacy" target="_blank">https://policies.google.com/privacy</a></li>
+</ul>
+
+<h3>3-4. Expo</h3>
+<p>アプリのビルド・配信基盤として利用しています。プッシュ通知の配信にExpo Notificationsを使用する場合があります。</p>
+<ul>
+  <li>提供元: Expo (650 Industries, Inc.)</li>
+  <li>プライバシーポリシー: <a href="https://expo.dev/privacy" target="_blank">https://expo.dev/privacy</a></li>
+</ul>
+
+<h2>第4条（データの保管とセキュリティ）</h2>
+<ol>
+  <li>ユーザーデータはSupabaseのクラウドデータベースに暗号化通信（TLS）を介して保存されます。</li>
+  <li>APIキー等の秘密情報はサーバー側（Supabase Edge Function）で管理し、クライアントアプリには埋め込みません。</li>
+  <li>データベースアクセスにはRow Level Security（RLS）を適用し、認証済みユーザーのみが自身のデータにアクセスできます。</li>
+  <li>レシート画像はOCR解析後にサーバーに保存せず、端末にもファイルとして残しません。</li>
+</ol>
+
+<h2>第5条（データの共有）</h2>
+<p>ユーザーの個人データを、第3条に記載の第三者サービス以外に提供・販売することはありません。ただし、以下の場合を除きます。</p>
+<ul>
+  <li>ユーザーの同意がある場合</li>
+  <li>法令に基づき開示が求められた場合</li>
+  <li>人命・身体・財産の保護のために必要な場合</li>
+</ul>
+
+<h2>第6条（ユーザーの権利）</h2>
+<p>ユーザーは以下の権利を有します。</p>
+<ol>
+  <li><strong>データの閲覧:</strong> アプリ内で自身の家計データを確認できます。</li>
+  <li><strong>データの削除:</strong> アプリ内から個別の取引データを削除できます。アカウント全体の削除を希望される場合は、下記の連絡先までお問い合わせください。</li>
+  <li><strong>通知の停止:</strong> 端末の設定からプッシュ通知を無効化できます。</li>
+  <li><strong>広告のパーソナライズ停止:</strong> 端末の設定から広告IDのトラッキングを制限できます。</li>
+</ol>
+
+<h2>第7条（児童のプライバシー）</h2>
+<p>本アプリは16歳未満の児童を対象としていません。16歳未満の方が個人情報を提供されたことが判明した場合、速やかに当該情報を削除いたします。</p>
+
+<h2>第8条（カメラ・写真ライブラリの使用）</h2>
+<p>本アプリは以下の目的でカメラおよび写真ライブラリへのアクセスを要求します。</p>
+<ul>
+  <li><strong>カメラ:</strong> レシートを撮影して自動で家計簿に記録するため</li>
+  <li><strong>写真ライブラリ:</strong> レシート画像の選択およびカテゴリアイコンの設定のため</li>
+</ul>
+<p>これらの権限は端末の設定からいつでも無効化できます。</p>
+
+<h2>第9条（プライバシーポリシーの変更）</h2>
+<p>本ポリシーは、法令の変更やサービス内容の変更に応じて改定される場合があります。重要な変更がある場合は、アプリ内通知またはアプリストアの更新情報にてお知らせします。</p>
+
+<h2>第10条（お問い合わせ）</h2>
+<p>本ポリシーに関するお問い合わせは、以下の連絡先までお願いいたします。</p>
+<ul>
+  <li>開発者: 守屋</li>
+  <li>メール: <a href="mailto:moriya.ryoga@gmail.com">moriya.ryoga@gmail.com</a></li>
+</ul>
+
+<p style="margin-top: 32px; font-size: 13px; color: #888;">制定日: 2026年5月26日</p>
+
+</div>
+
+<div class="footer">
+  &copy; 2026 家計簿. All rights reserved.
+</div>
+
+</body>
+</html>
