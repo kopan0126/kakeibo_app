@@ -165,6 +165,17 @@ export default function ReportScreen() {
     const isCurrentMonth = curYear === getYear(today) && curMon === getMonth(today) + 1;
     const totalDays = getDaysInMonth(curDate);
     const daysElapsed = isCurrentMonth ? Math.min(getDate(today), totalDays) : totalDays;
+    const daysRemaining = isCurrentMonth ? totalDays - getDate(today) : 0;
+
+    // 今月の収入合計
+    const curMonStart = format(startOfMonth(curDate), 'yyyy-MM-dd');
+    const curMonEnd = format(endOfMonth(curDate), 'yyyy-MM-dd');
+    let totalIncome = 0;
+    for (const tx of transactions) {
+      if (tx.transaction_date < curMonStart || tx.transaction_date > curMonEnd) continue;
+      const cat = categories.find((c) => c.id === tx.category_id);
+      if (cat?.type === 'income') totalIncome += tx.amount_cents;
+    }
 
     const curDaily = buildDailyExpense(transactions, categories, curYear, curMon);
     const prevDaily = buildDailyExpense(transactions, categories, prevYear, prevMon);
@@ -185,7 +196,7 @@ export default function ReportScreen() {
     const avgDaily = daysElapsed > 0 ? Math.round(totalExp / daysElapsed) : 0;
     const projected = daysElapsed > 0 ? Math.round((totalExp / daysElapsed) * totalDays) : 0;
 
-    return { curCum, prevCum, totalExpense: totalExp, diff, avgDaily, maxDayAmt, maxDayNum, projected, daysElapsed, totalDays };
+    return { curCum, prevCum, totalExpense: totalExp, totalIncome, diff, avgDaily, maxDayAmt, maxDayNum, projected, daysElapsed, daysRemaining, totalDays };
   }, [transactions, categories, currentMonth]);
 
   return (
@@ -336,20 +347,27 @@ interface TrendDataProps {
   curCum: number[];
   prevCum: number[];
   totalExpense: number;
+  totalIncome: number;
   diff: number;
   avgDaily: number;
   maxDayAmt: number;
   maxDayNum: number;
   projected: number;
   daysElapsed: number;
+  daysRemaining: number;
   totalDays: number;
 }
 
 function TrendTab({ data }: { data: TrendDataProps }) {
   const {
-    curCum, prevCum, totalExpense, diff, avgDaily,
-    maxDayAmt, maxDayNum, projected, daysElapsed, totalDays,
+    curCum, prevCum, totalExpense, totalIncome, diff, avgDaily,
+    maxDayAmt, maxDayNum, projected, daysElapsed, daysRemaining, totalDays,
   } = data;
+
+  const balance = totalIncome - totalExpense;
+  const dailyBudgetRemaining = daysRemaining > 0 && balance > 0
+    ? Math.floor(balance / daysRemaining)
+    : null;
 
   // SVG chart config
   const W = 264, H = 130, PAD = 6;
@@ -504,6 +522,42 @@ function TrendTab({ data }: { data: TrendDataProps }) {
           {' になる見込みです。'}
         </Text>
       </View>
+
+      {/* 収支残高カード */}
+      <View style={styles.balanceCard}>
+        <Text style={styles.balanceTitle}>今月の収支残高</Text>
+        <View style={styles.balanceRow}>
+          <View style={styles.balanceItem}>
+            <Text style={styles.balanceItemLabel}>収 入</Text>
+            <Text style={[styles.balanceItemValue, { color: AI.income }]}>
+              {formatCurrency(totalIncome)}
+            </Text>
+          </View>
+          <View style={styles.balanceDivider} />
+          <View style={styles.balanceItem}>
+            <Text style={styles.balanceItemLabel}>支 出</Text>
+            <Text style={[styles.balanceItemValue, { color: AI.expense }]}>
+              {formatCurrency(totalExpense)}
+            </Text>
+          </View>
+          <View style={styles.balanceDivider} />
+          <View style={styles.balanceItem}>
+            <Text style={styles.balanceItemLabel}>残 高</Text>
+            <Text style={[styles.balanceItemValue, { color: balance >= 0 ? AI.income : AI.expense, fontWeight: 'bold' }]}>
+              {balance >= 0 ? '+' : ''}{formatCurrency(Math.abs(balance))}
+            </Text>
+          </View>
+        </View>
+        {dailyBudgetRemaining !== null && (
+          <Text style={styles.dailyBudgetText}>
+            {'残り '}
+            <Text style={styles.dailyBudgetHighlight}>{daysRemaining}日</Text>
+            {' で 1日あたり '}
+            <Text style={styles.dailyBudgetHighlight}>{formatCurrency(dailyBudgetRemaining)}</Text>
+            {' 使えます'}
+          </Text>
+        )}
+      </View>
     </View>
   );
 }
@@ -631,4 +685,40 @@ const styles = StyleSheet.create({
   paceBadgeText: { fontSize: 11, fontWeight: '700', color: AI.indigo },
   paceText: { flex: 1, fontSize: 12, color: AI.text, lineHeight: 18 },
   paceHighlight: { color: AI.indigo, fontWeight: '700' },
+
+  // 収支残高カード
+  balanceCard: {
+    marginTop: 12,
+    backgroundColor: AI.washi2,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: AI.rule,
+    padding: 16,
+  },
+  balanceTitle: {
+    fontSize: 11, fontWeight: '600', color: AI.textSoft,
+    letterSpacing: 3, marginBottom: 12,
+  },
+  balanceRow: {
+    flexDirection: 'row', alignItems: 'center',
+  },
+  balanceItem: {
+    flex: 1, alignItems: 'center',
+  },
+  balanceDivider: {
+    width: 1, height: 32, backgroundColor: AI.rule,
+  },
+  balanceItemLabel: {
+    fontSize: 10, color: AI.textSoft, letterSpacing: 2, marginBottom: 4,
+  },
+  balanceItemValue: {
+    fontSize: 15, fontWeight: '600', color: AI.text,
+  },
+  dailyBudgetText: {
+    marginTop: 12, fontSize: 12, color: AI.textSoft,
+    textAlign: 'center', lineHeight: 18,
+  },
+  dailyBudgetHighlight: {
+    color: AI.indigo, fontWeight: '700',
+  },
 });
