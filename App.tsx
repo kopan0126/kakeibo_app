@@ -18,11 +18,23 @@ import MainNavigator from './src/screens/MainNavigator';
 function extractInviteCode(url: string): string | null {
   try {
     const parsed = Linking.parse(url);
-    if (parsed.path?.startsWith('join/')) {
-      return parsed.path.slice('join/'.length);
-    }
+
+    // ?code=XXXX 形式
     if (parsed.queryParams?.code) {
-      return String(parsed.queryParams.code);
+      return String(parsed.queryParams.code).trim() || null;
+    }
+
+    const segments = (parsed.path ?? '').split('/').filter(Boolean);
+
+    // path に join/XXXX を含む（Expo Go: exp://.../--/join/XXXX → path='join/XXXX'）
+    const joinIdx = segments.indexOf('join');
+    if (joinIdx >= 0 && segments[joinIdx + 1]) {
+      return segments[joinIdx + 1].trim() || null;
+    }
+
+    // standalone ビルド: kakeibo://join/XXXX → hostname='join', path='XXXX'
+    if (parsed.hostname === 'join' && segments[0]) {
+      return segments[0].trim() || null;
     }
   } catch { /* ignore */ }
   return null;

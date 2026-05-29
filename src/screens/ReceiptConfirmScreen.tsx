@@ -49,6 +49,11 @@ export default function ReceiptConfirmScreen({ route, navigation }: any) {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState(() => {
     if (receipt.date) {
+      // 'yyyy-MM-dd' はローカル日付として解釈（UTC扱いによる前日ズレを防ぐ）
+      const ymd = /^(\d{4})-(\d{2})-(\d{2})$/.exec(receipt.date);
+      if (ymd) {
+        return new Date(Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3]));
+      }
       const parsed = new Date(receipt.date);
       return isNaN(parsed.getTime()) ? new Date() : parsed;
     }
