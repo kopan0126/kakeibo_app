@@ -45,6 +45,8 @@ export type Transaction = {
   memo: string;
   transaction_date: string;
   receipt_url: string | null;
+  // 同時入力した個人＋グループのコピーを束ねるキー（単一スコープのみなら null）
+  link_id: string | null;
   created_at: string;
 };
 

@@ -6,7 +6,8 @@ import {
 import { useAuthStore } from '../stores/authStore';
 import { useTransactionStore } from '../stores/transactionStore';
 import { useTransactionFilter } from '../hooks/useActiveGroupId';
-import { deleteTransaction, getTransactionsByMonth } from '../services/transactions';
+import { deleteTransaction, deleteTransactionsByLink, getTransactionsByMonth } from '../services/transactions';
+import { askLinkedChoice } from '../utils/transactionScope';
 import {
   formatCurrency, formatDate, formatMonth,
   getMonthRange, prevMonth, nextMonth,
@@ -45,11 +46,33 @@ export default function TransactionListScreen({ navigation }: { navigation: any 
     navigation.navigate('EditTransaction', { transaction: tx });
   }
 
-  function handleDelete(tx: Transaction) {
+  async function handleDelete(tx: Transaction) {
     const cat = categories.find((c) => c.id === tx.category_id);
+    const summary = `${cat?.name ?? ''} ${formatCurrency(tx.amount_cents)}`;
+
+    // 個人＋グループにまたがる記録は「この記録だけ / 両方」を選ばせる
+    if (tx.link_id) {
+      const choice = await askLinkedChoice({
+        title: '削除する範囲',
+        message: `${summary}\nこの記録は個人とグループの両方に登録されています。`,
+        oneLabel: 'この記録だけ削除',
+        bothLabel: '両方を削除',
+        destructive: true,
+      });
+      if (choice === 'cancel') return;
+      try {
+        if (choice === 'both') await deleteTransactionsByLink(tx.link_id);
+        else await deleteTransaction(tx.id);
+        removeTransaction(tx.id);
+      } catch (e) {
+        Alert.alert('エラー', String(e));
+      }
+      return;
+    }
+
     Alert.alert(
       '削除しますか？',
-      `${cat?.name ?? ''} ${formatCurrency(tx.amount_cents)}`,
+      summary,
       [
         { text: 'キャンセル', style: 'cancel' },
         {
@@ -71,8 +94,10 @@ export default function TransactionListScreen({ navigation }: { navigation: any 
 
   return (
     <View style={styles.container}>
-      {/* スコープ選択 */}
-      <ScopeSelector />
+      {/* スコープ選択（上部に寄りすぎないよう下げる） */}
+      <View style={styles.scopeWrap}>
+        <ScopeSelector />
+      </View>
 
       {/* 月切り替え */}
       <View style={styles.monthRow}>
@@ -175,6 +200,7 @@ function groupByDate(txs: Transaction[]) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: AI.washi },
+  scopeWrap: { marginTop: 108 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   monthRow: {
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center',

@@ -9,8 +9,15 @@ import { ja } from 'date-fns/locale';
 import { useAuthStore } from '../stores/authStore';
 import { useTransactionStore } from '../stores/transactionStore';
 import { useGroupStore } from '../stores/groupStore';
-import { createTransactionBatch, getCategories, updateTransaction as updateTransactionApi } from '../services/transactions';
+import { useViewStore } from '../stores/viewStore';
+import {
+  createTransactionBatch, getCategories,
+  updateTransaction as updateTransactionApi, updateTransactionsByLink,
+} from '../services/transactions';
 import { formatCurrency } from '../utils/format';
+import {
+  genLinkId, scopeToGroupId, txMatchesScope, askLinkedChoice, type ScopeKey,
+} from '../utils/transactionScope';
 import CategoryIcon, { isImageIcon } from '../components/CategoryIcon';
 import { AI } from '../theme/aizome';
 import { trackTransactionSaved } from '../services/analytics';
@@ -24,8 +31,24 @@ export default function AddTransactionScreen({ navigation, route }: { navigation
   const { user } = useAuthStore();
   const { categories, setCategories, addTransaction, updateTransaction } = useTransactionStore();
   const { groups } = useGroupStore();
+  const { selectedScope } = useViewStore();
 
   const existingCat = existingTx ? categories.find((c) => c.id === existingTx.category_id) : undefined;
+
+  // 記録先スコープ（新規のみ）。デフォルトは個人＋所属グループ全部＝「OFFにしたもの」だけ記録。
+  // （グループはログイン後に非同期で読まれるため、未選択集合で持つと後から増えたグループも自動ON）
+  const personalLabel = user?.display_name || '個人';
+  const [deselectedScopes, setDeselectedScopes] = useState<Set<ScopeKey>>(() => new Set());
+  const allScopeKeys: ScopeKey[] = ['personal', ...groups.map((g) => g.id)];
+
+  function toggleScope(key: ScopeKey) {
+    setDeselectedScopes((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   const [type, setType] = useState<CategoryType>(existingCat?.type ?? 'expense');
   const [amountStr, setAmountStr] = useState(existingTx ? String(existingTx.amount_cents) : '0');
@@ -85,47 +108,88 @@ export default function AddTransactionScreen({ navigation, route }: { navigation
       return;
     }
 
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const patch = {
+      category_id: selectedCategoryId,
+      amount_cents: amount,
+      memo,
+      transaction_date: dateStr,
+    };
+
+    // ── 編集 ──────────────────────────────────────────────
+    if (existingTx) {
+      let target: 'one' | 'both' = 'one';
+      if (existingTx.link_id) {
+        const choice = await askLinkedChoice({
+          title: '更新する範囲',
+          message: 'この記録は個人とグループの両方に登録されています。',
+          oneLabel: 'この記録だけ更新',
+          bothLabel: '両方を更新',
+        });
+        if (choice === 'cancel') return;
+        target = choice;
+      }
+      setIsSaving(true);
+      try {
+        if (target === 'both' && existingTx.link_id) {
+          const updatedRows = await updateTransactionsByLink(existingTx.link_id, patch);
+          const activeRow = updatedRows.find((t) => txMatchesScope(t, selectedScope));
+          updateTransaction(activeRow ?? { ...existingTx, ...patch });
+        } else {
+          const updated = await updateTransactionApi(existingTx.id, patch);
+          updateTransaction(updated);
+        }
+        navigation.goBack();
+      } catch (e) {
+        Alert.alert('エラー', String(e));
+      } finally {
+        setIsSaving(false);
+      }
+      return;
+    }
+
+    // ── 新規 ──────────────────────────────────────────────
+    const scopeKeys: ScopeKey[] = allScopeKeys.filter((k) => !deselectedScopes.has(k));
+    if (scopeKeys.length === 0) {
+      Alert.alert('エラー', '記録先を1つ以上選んでください');
+      return;
+    }
+
     setIsSaving(true);
     try {
-      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+      const base = {
+        user_id: user.id,
+        category_id: selectedCategoryId,
+        amount_cents: amount,
+        memo,
+        transaction_date: dateStr,
+        receipt_url: null,
+      };
+      // 2スコープ以上なら link_id で束ねる（まとめて編集／削除できるように）
+      const linkId = scopeKeys.length >= 2 ? genLinkId() : null;
+      const rows = scopeKeys.map((s) => ({
+        ...base,
+        group_id: scopeToGroupId(s),
+        ...(linkId ? { link_id: linkId } : {}),
+      }));
+      const txs = await createTransactionBatch(rows);
 
-      if (existingTx) {
-        const updated = await updateTransactionApi(existingTx.id, {
-          category_id: selectedCategoryId,
-          amount_cents: amount,
-          memo,
-          transaction_date: dateStr,
-        });
-        updateTransaction(updated);
-        navigation.goBack();
-      } else {
-        const base = {
-          user_id: user.id,
-          category_id: selectedCategoryId,
-          amount_cents: amount,
-          memo,
-          transaction_date: dateStr,
-          receipt_url: null,
-        };
-        const rows = [
-          { ...base, group_id: null },
-          ...groups.map((g) => ({ ...base, group_id: g.id as string | null })),
-        ];
-        const txs = await createTransactionBatch(rows);
-        txs.forEach(addTransaction);
-        trackTransactionSaved({
-          type,
-          amount,
-          hasCategory: !!selectedCategoryId,
-          hasMemo: memo.trim().length > 0,
-          isGroupTransaction: groups.length > 0,
-        });
-        setAmountStr('0');
-        setSelectedCategoryId(null);
-        setMemo('');
-        setSelectedDate(new Date());
-        Alert.alert('保存しました', formatCurrency(amount) + ' を記録しました');
-      }
+      // 水増し防止: 共有ストアには「今表示中スコープの行」だけ反映する
+      const activeRow = txs.find((t) => txMatchesScope(t, selectedScope));
+      if (activeRow) addTransaction(activeRow);
+
+      trackTransactionSaved({
+        type,
+        amount,
+        hasCategory: !!selectedCategoryId,
+        hasMemo: memo.trim().length > 0,
+        isGroupTransaction: scopeKeys.some((s) => s !== 'personal'),
+      });
+      setAmountStr('0');
+      setSelectedCategoryId(null);
+      setMemo('');
+      setSelectedDate(new Date());
+      Alert.alert('保存しました', formatCurrency(amount) + ' を記録しました');
     } catch (e) {
       Alert.alert('エラー', String(e));
     } finally {
@@ -228,6 +292,32 @@ export default function AddTransactionScreen({ navigation, route }: { navigation
         maxLength={50}
       />
 
+      {/* 記録先スコープ（新規・グループ所属時のみ） */}
+      {!existingTx && groups.length > 0 && (
+        <>
+          <Text style={styles.label}>記録先（複数選択可）</Text>
+          <View style={styles.scopeChips}>
+            {[
+              { key: 'personal' as ScopeKey, label: personalLabel },
+              ...groups.map((g) => ({ key: g.id as ScopeKey, label: g.name })),
+            ].map((opt) => {
+              const on = !deselectedScopes.has(opt.key);
+              return (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[styles.scopeChip, on && styles.scopeChipOn]}
+                  onPress={() => toggleScope(opt.key)}
+                >
+                  <Text style={[styles.scopeChipText, on && styles.scopeChipTextOn]}>
+                    {on ? '✓ ' : ''}{opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </>
+      )}
+
       {/* 保存ボタン */}
       <TouchableOpacity
         style={[styles.saveBtn, isSaving && { opacity: 0.6 }]}
@@ -310,6 +400,14 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: AI.rule, alignItems: 'center',
   },
   scanBtnText: { color: AI.indigo, fontSize: 14, fontWeight: '600' },
+  scopeChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  scopeChip: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+    backgroundColor: AI.washi2, borderWidth: 1, borderColor: AI.rule,
+  },
+  scopeChipOn: { backgroundColor: AI.indigo, borderColor: AI.indigo },
+  scopeChipText: { fontSize: 13, color: AI.textSoft, fontWeight: '600' },
+  scopeChipTextOn: { color: AI.brass },
   saveBtn: {
     backgroundColor: AI.indigo, borderRadius: 14, paddingVertical: 18, alignItems: 'center',
     elevation: 3, shadowColor: AI.indigo, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 6,

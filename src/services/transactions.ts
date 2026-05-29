@@ -1,6 +1,10 @@
 import { supabase } from './supabase';
 import type { Transaction, Category, CategoryType } from '../types';
 
+// 挿入時は link_id を省略可能にする（単一スコープのみなら付けない）
+export type TransactionInsert =
+  Omit<Transaction, 'id' | 'created_at' | 'link_id'> & { link_id?: string | null };
+
 export async function getTransactionsByMonth(
   userId: string,
   from: string,
@@ -47,7 +51,7 @@ export async function getTransactionsByMonth(
 }
 
 export async function createTransaction(
-  params: Omit<Transaction, 'id' | 'created_at'>,
+  params: TransactionInsert,
 ): Promise<Transaction> {
   const { data, error } = await supabase
     .from('transactions')
@@ -60,7 +64,7 @@ export async function createTransaction(
 }
 
 export async function createTransactionBatch(
-  paramsList: Omit<Transaction, 'id' | 'created_at'>[],
+  paramsList: TransactionInsert[],
 ): Promise<Transaction[]> {
   if (paramsList.length === 0) return [];
   const { data, error } = await supabase
@@ -89,6 +93,31 @@ export async function updateTransaction(
 
 export async function deleteTransaction(id: string): Promise<void> {
   const { error } = await supabase.from('transactions').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+// link_id で束ねた個人＋グループのコピーをまとめて更新（RLS により自分の行のみ）
+export async function updateTransactionsByLink(
+  linkId: string,
+  params: Partial<Omit<Transaction, 'id' | 'created_at'>>,
+): Promise<Transaction[]> {
+  const { data, error } = await supabase
+    .from('transactions')
+    .update(params)
+    .eq('link_id', linkId)
+    .select();
+
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+// link_id で束ねたコピーをまとめて削除（RLS により自分の行のみ）
+export async function deleteTransactionsByLink(linkId: string): Promise<void> {
+  const { error } = await supabase
+    .from('transactions')
+    .delete()
+    .eq('link_id', linkId);
+
   if (error) throw new Error(error.message);
 }
 

@@ -9,9 +9,13 @@ import { ja } from 'date-fns/locale';
 import { useAuthStore } from '../stores/authStore';
 import { useTransactionStore } from '../stores/transactionStore';
 import { useGroupStore } from '../stores/groupStore';
+import { useViewStore } from '../stores/viewStore';
 import { createTransactionBatch, getCategories } from '../services/transactions';
 import { findCategoryBySuggestion } from '../utils/categoryMapping';
 import { formatCurrency } from '../utils/format';
+import {
+  genLinkId, scopeToGroupId, txMatchesScope, type ScopeKey,
+} from '../utils/transactionScope';
 import { AI } from '../theme/aizome';
 import type { ParsedReceipt, CategoryType } from '../types';
 
@@ -20,6 +24,21 @@ export default function ReceiptConfirmScreen({ route, navigation }: any) {
   const { user } = useAuthStore();
   const { categories, setCategories, addTransaction } = useTransactionStore();
   const { groups } = useGroupStore();
+  const { selectedScope } = useViewStore();
+
+  // 記録先スコープ。デフォルトは個人＋所属グループ全部（OFFにしたものだけ除外）。
+  const personalLabel = user?.display_name || '個人';
+  const [deselectedScopes, setDeselectedScopes] = useState<Set<ScopeKey>>(() => new Set());
+  const allScopeKeys: ScopeKey[] = ['personal', ...groups.map((g) => g.id)];
+
+  function toggleScope(key: ScopeKey) {
+    setDeselectedScopes((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   const [type, setType] = useState<CategoryType>(
     receipt.transactionType === 'income' ? 'income' : 'expense',
@@ -77,9 +96,15 @@ export default function ReceiptConfirmScreen({ route, navigation }: any) {
       return;
     }
 
+    const scopeKeys: ScopeKey[] = allScopeKeys.filter((k) => !deselectedScopes.has(k));
+    if (scopeKeys.length === 0) {
+      Alert.alert('エラー', '記録先を1つ以上選んでください');
+      return;
+    }
+
     setIsSaving(true);
     try {
-      const dateStr = selectedDate.toISOString().split('T')[0];
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
       const base = {
         user_id: user.id,
         category_id: selectedCategoryId,
@@ -89,12 +114,18 @@ export default function ReceiptConfirmScreen({ route, navigation }: any) {
         receipt_url: null,
       };
 
-      const rows = [
-        { ...base, group_id: null },
-        ...groups.map((g) => ({ ...base, group_id: g.id as string | null })),
-      ];
+      // 2スコープ以上なら link_id で束ねる（まとめて編集／削除できるように）
+      const linkId = scopeKeys.length >= 2 ? genLinkId() : null;
+      const rows = scopeKeys.map((s) => ({
+        ...base,
+        group_id: scopeToGroupId(s),
+        ...(linkId ? { link_id: linkId } : {}),
+      }));
       const txs = await createTransactionBatch(rows);
-      txs.forEach(addTransaction);
+
+      // 水増し防止: 共有ストアには今表示中スコープの行だけ反映する
+      const activeRow = txs.find((t) => txMatchesScope(t, selectedScope));
+      if (activeRow) addTransaction(activeRow);
 
       Alert.alert('保存しました', formatCurrency(amount) + ' を記録しました');
       navigation.popToTop();
@@ -217,6 +248,32 @@ export default function ReceiptConfirmScreen({ route, navigation }: any) {
         </View>
       ))}
 
+      {/* 記録先スコープ（グループ所属時のみ） */}
+      {groups.length > 0 && (
+        <>
+          <Text style={styles.label}>記録先（複数選択可）</Text>
+          <View style={styles.scopeChips}>
+            {[
+              { key: 'personal' as ScopeKey, label: personalLabel },
+              ...groups.map((g) => ({ key: g.id as ScopeKey, label: g.name })),
+            ].map((opt) => {
+              const on = !deselectedScopes.has(opt.key);
+              return (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[styles.scopeChip, on && styles.scopeChipOn]}
+                  onPress={() => toggleScope(opt.key)}
+                >
+                  <Text style={[styles.scopeChipText, on && styles.scopeChipTextOn]}>
+                    {on ? '✓ ' : ''}{opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </>
+      )}
+
       {/* ボタン */}
       <TouchableOpacity
         style={[styles.saveBtn, isSaving && { opacity: 0.6 }]}
@@ -271,6 +328,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12, fontSize: 15, marginBottom: 12,
     borderWidth: 1, borderColor: AI.rule, color: AI.text,
   },
+  scopeChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  scopeChip: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+    backgroundColor: AI.washi2, borderWidth: 1, borderColor: AI.rule,
+  },
+  scopeChipOn: { backgroundColor: AI.indigo, borderColor: AI.indigo },
+  scopeChipText: { fontSize: 13, color: AI.textSoft, fontWeight: '600' },
+  scopeChipTextOn: { color: AI.brass },
   itemsToggle: { paddingVertical: 10, marginBottom: 4 },
   itemsToggleText: { color: AI.indigo, fontWeight: '600', fontSize: 13 },
   itemRow: {
