@@ -9,7 +9,7 @@ import {
   getDaysInMonth, startOfWeek, endOfWeek,
   parseISO, getDate, getYear, getMonth,
 } from 'date-fns';
-import { ja } from 'date-fns/locale';
+
 import { useAuthStore } from '../stores/authStore';
 import { useTransactionStore } from '../stores/transactionStore';
 import { useViewStore } from '../stores/viewStore';
@@ -22,6 +22,7 @@ import ScopeSelector from '../components/ScopeSelector';
 import AdBanner from '../components/AdBanner';
 import AsanohaBg from '../components/AsanohaBg';
 import { AI } from '../theme/aizome';
+import { trackReportTabChanged, trackReportPeriodChanged } from '../services/analytics';
 import type { Transaction, Category } from '../types';
 
 // ─── Types ────────────────────────────────────────────────────
@@ -77,7 +78,7 @@ function buildDailyExpense(
 }
 
 // ─── Main Screen ──────────────────────────────────────────────
-export default function ReportScreen() {
+export default function ReportScreen({ navigation }: { navigation: any }) {
   const { user } = useAuthStore();
   const { categories, setCategories } = useTransactionStore();
   const { selectedScope } = useViewStore();
@@ -201,7 +202,15 @@ export default function ReportScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <ScopeSelector />
+      <View style={styles.scopeRow}>
+        <ScopeSelector />
+        <TouchableOpacity
+          style={styles.familyBtn}
+          onPress={() => navigation.navigate('Family')}
+        >
+          <Text style={styles.familyBtnText}>家族設定</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Month switcher */}
       <View style={styles.monthRow}>
@@ -220,7 +229,7 @@ export default function ReportScreen() {
           <TouchableOpacity
             key={tab}
             style={[styles.tab, activeTab === tab && styles.tabActive]}
-            onPress={() => setActiveTab(tab)}
+            onPress={() => { setActiveTab(tab); trackReportTabChanged(tab); }}
           >
             <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
               {tab === 'trend' ? '支出推移' : 'カテゴリ分析'}
@@ -279,7 +288,7 @@ function CategoryTab({
           <TouchableOpacity
             key={p}
             style={[styles.periodBtn, period === p && styles.periodBtnActive]}
-            onPress={() => setPeriod(p)}
+            onPress={() => { setPeriod(p); trackReportPeriodChanged(p); }}
           >
             <Text style={[styles.periodBtnText, period === p && styles.periodBtnTextActive]}>{p}</Text>
           </TouchableOpacity>
@@ -566,6 +575,18 @@ function TrendTab({ data }: { data: TrendDataProps }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: AI.washi },
   content: { paddingBottom: 40 },
+
+  // Scope + Family
+  scopeRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingRight: 16, marginTop: 48,
+  },
+  familyBtn: {
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 14, borderWidth: 1, borderColor: AI.rule,
+    backgroundColor: AI.washi2,
+  },
+  familyBtnText: { fontSize: 12, color: AI.textSoft, fontWeight: '500' },
 
   // Month switcher
   monthRow: {

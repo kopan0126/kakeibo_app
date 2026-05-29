@@ -17,7 +17,7 @@ import AdBanner from '../components/AdBanner';
 import { AI } from '../theme/aizome';
 import type { Transaction, Category } from '../types';
 
-export default function TransactionListScreen() {
+export default function TransactionListScreen({ navigation }: { navigation: any }) {
   const { user } = useAuthStore();
   const filter = useTransactionFilter();
   const {
@@ -40,6 +40,10 @@ export default function TransactionListScreen() {
   }, [user, filter.showPersonal, filter.groupId, currentMonth]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  function handleEdit(tx: Transaction) {
+    navigation.navigate('EditTransaction', { transaction: tx });
+  }
 
   function handleDelete(tx: Transaction) {
     const cat = categories.find((c) => c.id === tx.category_id);
@@ -111,6 +115,7 @@ export default function TransactionListScreen() {
                   key={tx.id}
                   tx={tx}
                   categories={categories}
+                  onEdit={() => handleEdit(tx)}
                   onDelete={() => handleDelete(tx)}
                 />
               ))}
@@ -123,10 +128,11 @@ export default function TransactionListScreen() {
 }
 
 function TxRow({
-  tx, categories, onDelete,
+  tx, categories, onEdit, onDelete,
 }: {
   tx: Transaction;
   categories: Category[];
+  onEdit: () => void;
   onDelete: () => void;
 }) {
   const cat = categories.find((c) => c.id === tx.category_id);
@@ -134,7 +140,7 @@ function TxRow({
 
   const icon = cat?.icon ?? '📦';
   return (
-    <View style={styles.txRow}>
+    <TouchableOpacity style={styles.txRow} onPress={onEdit} activeOpacity={0.7}>
       <View style={[
         styles.txIconWrap,
         { backgroundColor: isImageIcon(icon) ? '#F0F0F0' : (cat?.color ?? '#9E9E9E') + '22' },
@@ -151,7 +157,7 @@ function TxRow({
       <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
         <Text style={styles.deleteText}>✕</Text>
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 }
 

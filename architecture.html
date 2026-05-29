@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>kakeibo-app 技術構成図</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', sans-serif;
+    background: #f5f5f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  .canvas {
+    background: #fff;
+    width: 900px;
+    padding: 48px;
+    border-radius: 4px;
+  }
+
+  .title {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 40px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ---- 点線ボックス ---- */
+  .dotted-box {
+    border: 2px dashed #aaa;
+    border-radius: 12px;
+    padding: 32px 28px 28px;
+    position: relative;
+    margin-bottom: 48px;
+  }
+
+  /* ---- 上段：フロントエンド → バックエンド → DB ---- */
+  .top-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .col-label {
+    font-size: 13px;
+    color: #666;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  .arrow {
+    font-size: 24px;
+    color: #555;
+    padding: 0 12px;
+    margin-top: 20px;
+  }
+
+  /* ---- カード ---- */
+  .card {
+    width: 150px;
+    height: 150px;
+    border: 2px solid #ddd;
+    border-radius: 16px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+  }
+
+  .card-sm {
+    width: 130px;
+    height: 130px;
+  }
+
+  .card-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 800;
+  }
+
+  .card-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
+    text-align: center;
+  }
+
+  .card-sub {
+    font-size: 10px;
+    color: #888;
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  /* ---- 色定義 ---- */
+  .expo-icon    { background: #000; color: #fff; font-size: 26px; }
+  .supabase-icon{ background: #3ECF8E; color: #fff; font-size: 14px; font-weight: 900; }
+  .pg-icon      { background: #336791; color: #fff; font-size: 20px; }
+  .claude-icon  { background: #cc785c; color: #fff; font-size: 18px; font-weight: 700; }
+  .admob-icon   { background: #4285F4; color: #fff; font-size: 11px; font-weight: 800; }
+  .appstore-icon{ background: #1c7ffe; color: #fff; font-size: 24px; }
+  .auth-icon    { background: #3ECF8E; color: #fff; font-size: 16px; font-weight: 700; }
+  .storage-icon { background: #3ECF8E; color: #fff; font-size: 16px; font-weight: 700; }
+
+  /* ---- 中段：Auth 縦矢印 ---- */
+  .mid-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    gap: 40px;
+  }
+
+  .vertical-arrow-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .v-label {
+    font-size: 12px;
+    color: #666;
+    font-weight: 500;
+  }
+
+  .v-arrow {
+    font-size: 20px;
+    color: #555;
+    line-height: 1;
+  }
+
+  /* ---- 下段 ---- */
+  .bottom-row {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+
+  .bottom-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* ---- 接続線エリア ---- */
+  .connectors {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 16px;
+  }
+
+  .connector-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .v-line {
+    width: 2px;
+    height: 32px;
+    background: #aaa;
+  }
+
+  /* ---- Zustand バッジ ---- */
+  .badge-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  .badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: #f0f0f0;
+    color: #555;
+    border: 1px solid #ddd;
+    white-space: nowrap;
+  }
+
+  .badge-blue { background: #e8f0fe; color: #1967d2; border-color: #c5d9f8; }
+  .badge-green { background: #e6f4ea; color: #188038; border-color: #b8dfba; }
+  .badge-orange { background: #fce8e6; color: #c5221f; border-color: #f5c6c3; }
+</style>
+</head>
+<body>
+<div class="canvas">
+  <div class="title">kakeibo-app 技術構成図</div>
+
+  <!-- ===== 点線ボックス ===== -->
+  <div class="dotted-box">
+
+    <!-- 上段 3カラム -->
+    <div class="top-row">
+
+      <!-- フロントエンド -->
+      <div class="col">
+        <div class="col-label">フロントエンド</div>
+        <div class="card">
+          <div class="card-icon expo-icon">✦</div>
+          <div class="card-name">Expo</div>
+          <div class="badge-row">
+            <span class="badge badge-blue">React Native</span>
+          </div>
+          <div class="badge-row">
+            <span class="badge">Zustand</span>
+            <span class="badge">TypeScript</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow">→</div>
+
+      <!-- バックエンド -->
+      <div class="col">
+        <div class="col-label">バックエンド</div>
+        <div class="card">
+          <div class="card-icon supabase-icon">SB</div>
+          <div class="card-name">Supabase</div>
+          <div class="badge-row">
+            <span class="badge badge-green">Edge Functions</span>
+          </div>
+          <div class="badge-row">
+            <span class="badge">Deno / TypeScript</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="arrow">→</div>
+
+      <!-- データベース -->
+      <div class="col">
+        <div class="col-label">データベース</div>
+        <div class="card">
+          <div class="card-icon pg-icon">🐘</div>
+          <div class="card-name">Supabase DB</div>
+          <div class="badge-row">
+            <span class="badge badge-blue">PostgreSQL</span>
+          </div>
+          <div class="badge-row">
+            <span class="badge">RLS 有効</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="width: 24px;"></div>
+
+      <!-- ストレージ -->
+      <div class="col">
+        <div class="col-label">ストレージ</div>
+        <div class="card card-sm">
+          <div class="card-icon storage-icon" style="width:52px;height:52px;">S3</div>
+          <div class="card-name">Supabase<br>Storage</div>
+          <div class="badge-row">
+            <span class="badge">アバター画像</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 認証（下から接続） -->
+    <div class="mid-row">
+      <div class="vertical-arrow-group">
+        <div class="v-label">認証</div>
+        <div class="v-arrow">↑</div>
+        <div class="card card-sm">
+          <div class="card-icon auth-icon" style="width:52px;height:52px;">Auth</div>
+          <div class="card-name">Supabase Auth</div>
+          <div class="badge-row">
+            <span class="badge">匿名認証</span>
+            <span class="badge">Email</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <!-- /点線ボックス -->
+
+  <!-- ===== 接続線 ===== -->
+  <div class="connectors">
+    <div class="connector-item">
+      <div class="v-label">広告</div>
+      <div class="v-line"></div>
+    </div>
+    <div class="connector-item">
+      <div class="v-label">AI / OCR</div>
+      <div class="v-line"></div>
+    </div>
+    <div class="connector-item">
+      <div class="v-label">配信</div>
+      <div class="v-line"></div>
+    </div>
+  </div>
+
+  <!-- ===== 下段 ===== -->
+  <div class="bottom-row">
+
+    <!-- Google AdMob -->
+    <div class="bottom-col">
+      <div class="card card-sm">
+        <div class="card-icon admob-icon" style="width:56px;height:56px;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" fill="#4285F4"/>
+            <text x="12" y="16" text-anchor="middle" fill="white" font-size="8" font-weight="bold">AdMob</text>
+          </svg>
+        </div>
+        <div class="card-name">Google AdMob</div>
+        <div class="badge-row">
+          <span class="badge">バナー広告</span>
+        </div>
+        <div class="badge-row">
+          <span class="badge badge-orange">リワード広告</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Claude API -->
+    <div class="bottom-col">
+      <div class="card card-sm">
+        <div class="card-icon claude-icon" style="width:56px;height:56px; font-size:22px;">✦</div>
+        <div class="card-name">Claude API</div>
+        <div class="badge-row">
+          <span class="badge badge-orange">Haiku 4.5</span>
+        </div>
+        <div class="badge-row">
+          <span class="badge">レシートOCR</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- App Store / Google Play -->
+    <div class="bottom-col">
+      <div class="card card-sm">
+        <div class="card-icon appstore-icon" style="width:56px;height:56px; font-size:28px;">A</div>
+        <div class="card-name">App Store /<br>Google Play</div>
+        <div class="badge-row">
+          <span class="badge badge-blue">EAS Build</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</body>
+</html>

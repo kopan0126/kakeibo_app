@@ -8,18 +8,18 @@ import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { useAuthStore } from '../stores/authStore';
 import { useTransactionStore } from '../stores/transactionStore';
-import { useTransactionFilter } from '../hooks/useActiveGroupId';
-import { createTransaction, getCategories } from '../services/transactions';
+import { useGroupStore } from '../stores/groupStore';
+import { createTransactionBatch, getCategories } from '../services/transactions';
 import { findCategoryBySuggestion } from '../utils/categoryMapping';
 import { formatCurrency } from '../utils/format';
 import { AI } from '../theme/aizome';
-import type { ParsedReceipt, Category, CategoryType } from '../types';
+import type { ParsedReceipt, CategoryType } from '../types';
 
 export default function ReceiptConfirmScreen({ route, navigation }: any) {
   const receipt = route.params.receipt as ParsedReceipt;
   const { user } = useAuthStore();
   const { categories, setCategories, addTransaction } = useTransactionStore();
-  const filter = useTransactionFilter();
+  const { groups } = useGroupStore();
 
   const [type, setType] = useState<CategoryType>(
     receipt.transactionType === 'income' ? 'income' : 'expense',
@@ -45,6 +45,10 @@ export default function ReceiptConfirmScreen({ route, navigation }: any) {
       getCategories().then(setCategories).catch(console.error);
     }
   }, []);
+
+  useEffect(() => {
+    setSelectedCategoryId(null);
+  }, [type]);
 
   useEffect(() => {
     if (categories.length > 0 && !selectedCategoryId) {
@@ -75,16 +79,23 @@ export default function ReceiptConfirmScreen({ route, navigation }: any) {
 
     setIsSaving(true);
     try {
-      const tx = await createTransaction({
-        group_id: filter.groupId,
+      const dateStr = selectedDate.toISOString().split('T')[0];
+      const base = {
         user_id: user.id,
         category_id: selectedCategoryId,
         amount_cents: amount,
         memo,
-        transaction_date: selectedDate.toISOString().split('T')[0],
+        transaction_date: dateStr,
         receipt_url: null,
-      });
-      addTransaction(tx);
+      };
+
+      const rows = [
+        { ...base, group_id: null },
+        ...groups.map((g) => ({ ...base, group_id: g.id as string | null })),
+      ];
+      const txs = await createTransactionBatch(rows);
+      txs.forEach(addTransaction);
+
       Alert.alert('保存しました', formatCurrency(amount) + ' を記録しました');
       navigation.popToTop();
     } catch (e) {

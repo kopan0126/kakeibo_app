@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, TextInput,
   ScrollView, StyleSheet, Alert, ActivityIndicator, Platform,
@@ -8,27 +8,40 @@ import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { useAuthStore } from '../stores/authStore';
 import { useTransactionStore } from '../stores/transactionStore';
-import { useTransactionFilter } from '../hooks/useActiveGroupId';
-import { createTransaction, getCategories } from '../services/transactions';
+import { useGroupStore } from '../stores/groupStore';
+import { createTransactionBatch, getCategories, updateTransaction as updateTransactionApi } from '../services/transactions';
 import { formatCurrency } from '../utils/format';
 import CategoryIcon, { isImageIcon } from '../components/CategoryIcon';
 import { AI } from '../theme/aizome';
-import type { CategoryType, Category } from '../types';
+import { trackTransactionSaved } from '../services/analytics';
+import type { CategoryType, Category, Transaction } from '../types';
 
 const KEYS = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', '00', '⌫'];
 
-export default function AddTransactionScreen({ navigation }: { navigation: any }) {
-  const { user } = useAuthStore();
-  const { categories, setCategories, addTransaction } = useTransactionStore();
-  const filter = useTransactionFilter();
+export default function AddTransactionScreen({ navigation, route }: { navigation: any; route: any }) {
+  const existingTx: Transaction | undefined = route?.params?.transaction;
 
-  const [type, setType] = useState<CategoryType>('expense');
-  const [amountStr, setAmountStr] = useState('0');
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [memo, setMemo] = useState('');
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const { user } = useAuthStore();
+  const { categories, setCategories, addTransaction, updateTransaction } = useTransactionStore();
+  const { groups } = useGroupStore();
+
+  const existingCat = existingTx ? categories.find((c) => c.id === existingTx.category_id) : undefined;
+
+  const [type, setType] = useState<CategoryType>(existingCat?.type ?? 'expense');
+  const [amountStr, setAmountStr] = useState(existingTx ? String(existingTx.amount_cents) : '0');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(existingTx?.category_id ?? null);
+  const [memo, setMemo] = useState(existingTx?.memo ?? '');
+  const [selectedDate, setSelectedDate] = useState(() => {
+    if (existingTx) {
+      const [y, m, d] = existingTx.transaction_date.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+    return new Date();
+  });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  const skipTypeEffect = useRef(true);
 
   useEffect(() => {
     if (categories.length === 0) {
@@ -37,6 +50,7 @@ export default function AddTransactionScreen({ navigation }: { navigation: any }
   }, []);
 
   useEffect(() => {
+    if (skipTypeEffect.current) { skipTypeEffect.current = false; return; }
     setSelectedCategoryId(null);
   }, [type]);
 
@@ -73,21 +87,45 @@ export default function AddTransactionScreen({ navigation }: { navigation: any }
 
     setIsSaving(true);
     try {
-      const tx = await createTransaction({
-        group_id: filter.groupId,
-        user_id: user.id,
-        category_id: selectedCategoryId,
-        amount_cents: amount,
-        memo,
-        transaction_date: selectedDate.toISOString().split('T')[0],
-        receipt_url: null,
-      });
-      addTransaction(tx);
-      setAmountStr('0');
-      setSelectedCategoryId(null);
-      setMemo('');
-      setSelectedDate(new Date());
-      Alert.alert('保存しました', formatCurrency(amount) + ' を記録しました');
+      const dateStr = format(selectedDate, 'yyyy-MM-dd');
+
+      if (existingTx) {
+        const updated = await updateTransactionApi(existingTx.id, {
+          category_id: selectedCategoryId,
+          amount_cents: amount,
+          memo,
+          transaction_date: dateStr,
+        });
+        updateTransaction(updated);
+        navigation.goBack();
+      } else {
+        const base = {
+          user_id: user.id,
+          category_id: selectedCategoryId,
+          amount_cents: amount,
+          memo,
+          transaction_date: dateStr,
+          receipt_url: null,
+        };
+        const rows = [
+          { ...base, group_id: null },
+          ...groups.map((g) => ({ ...base, group_id: g.id as string | null })),
+        ];
+        const txs = await createTransactionBatch(rows);
+        txs.forEach(addTransaction);
+        trackTransactionSaved({
+          type,
+          amount,
+          hasCategory: !!selectedCategoryId,
+          hasMemo: memo.trim().length > 0,
+          isGroupTransaction: groups.length > 0,
+        });
+        setAmountStr('0');
+        setSelectedCategoryId(null);
+        setMemo('');
+        setSelectedDate(new Date());
+        Alert.alert('保存しました', formatCurrency(amount) + ' を記録しました');
+      }
     } catch (e) {
       Alert.alert('エラー', String(e));
     } finally {
@@ -132,9 +170,11 @@ export default function AddTransactionScreen({ navigation }: { navigation: any }
       </View>
 
       {/* スキャンで入力（テンキーとカテゴリの間） */}
-      <TouchableOpacity style={styles.scanBtn} onPress={() => navigation.navigate('ReceiptScan')}>
-        <Text style={styles.scanBtnText}>📷 レシート・明細をスキャンして自動入力</Text>
-      </TouchableOpacity>
+      {!existingTx && (
+        <TouchableOpacity style={styles.scanBtn} onPress={() => navigation.navigate('ReceiptScan')}>
+          <Text style={styles.scanBtnText}>📷 レシート・明細をスキャンして自動入力</Text>
+        </TouchableOpacity>
+      )}
 
       {/* カテゴリ選択 */}
       <View style={styles.labelRow}>
@@ -196,7 +236,7 @@ export default function AddTransactionScreen({ navigation }: { navigation: any }
       >
         {isSaving
           ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.saveBtnText}>保存する</Text>}
+          : <Text style={styles.saveBtnText}>{existingTx ? '更新する' : '保存する'}</Text>}
       </TouchableOpacity>
     </ScrollView>
   );

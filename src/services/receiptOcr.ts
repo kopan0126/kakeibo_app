@@ -30,7 +30,7 @@ export async function parseReceiptImage(base64: string): Promise<ParsedReceipt |
     const text = await callClaudeViaEdge({
       action: 'ocr',
       model: MODEL,
-      max_tokens: 512,
+      max_tokens: 2048,
       system: SYSTEM_PROMPT,
       messages: [{
         role: 'user',

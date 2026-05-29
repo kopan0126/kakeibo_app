@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.moriya.kakeibo",
+      "bundleIdentifier": "com.moriyaryoga.kakeibo",
       "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "レシートを撮影して自動で家計簿に記録するために、カメラへのアクセスが必要です。",
@@ -29,7 +29,7 @@
         "backgroundColor": "#F1E8D3"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.moriya.kakeibo",
+      "package": "com.moriyaryoga.kakeibo",
       "versionCode": 1,
       "permissions": [
         "android.permission.CAMERA",

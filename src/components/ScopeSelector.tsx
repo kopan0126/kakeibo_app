@@ -1,11 +1,15 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useAuthStore } from '../stores/authStore';
 import { useGroupStore } from '../stores/groupStore';
 import { useViewStore } from '../stores/viewStore';
 import { AI } from '../theme/aizome';
 
 export default function ScopeSelector() {
-  const { group } = useGroupStore();
+  const { user } = useAuthStore();
+  const { groups } = useGroupStore();
   const { selectedScope, setScope } = useViewStore();
+
+  const personalLabel = user?.display_name || '自分だけ';
 
   return (
     <View style={styles.container}>
@@ -14,19 +18,20 @@ export default function ScopeSelector() {
         onPress={() => setScope('personal')}
       >
         <Text style={[styles.pillText, selectedScope === 'personal' && styles.pillTextActive]}>
-          自分だけ
+          {personalLabel}
         </Text>
       </TouchableOpacity>
-      {group && (
+      {groups.map((g) => (
         <TouchableOpacity
-          style={[styles.pill, selectedScope === group.id && styles.pillActive]}
-          onPress={() => setScope(group.id)}
+          key={g.id}
+          style={[styles.pill, selectedScope === g.id && styles.pillActive]}
+          onPress={() => setScope(g.id)}
         >
-          <Text style={[styles.pillText, selectedScope === group.id && styles.pillTextActive]}>
-            {group.name}
+          <Text style={[styles.pillText, selectedScope === g.id && styles.pillTextActive]}>
+            {g.name}
           </Text>
         </TouchableOpacity>
-      )}
+      ))}
     </View>
   );
 }
@@ -34,6 +39,7 @@ export default function ScopeSelector() {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,

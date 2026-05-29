@@ -1,23 +1,23 @@
 import { supabase } from './supabase';
 import type { FamilyGroup, FamilyMember } from '../types';
 
-export async function getMyGroup(userId: string): Promise<FamilyGroup | null> {
-  const { data } = await supabase
+export async function getMyGroups(userId: string): Promise<FamilyGroup[]> {
+  const { data: memberships, error: memberError } = await supabase
     .from('family_members')
     .select('group_id')
-    .eq('user_id', userId)
-    .limit(1)
-    .single();
+    .eq('user_id', userId);
 
-  if (!data) return null;
+  if (memberError) throw new Error('グループ情報の取得に失敗しました');
+  if (!memberships || memberships.length === 0) return [];
 
-  const { data: group } = await supabase
+  const groupIds = memberships.map((m) => m.group_id);
+  const { data: groups, error: groupError } = await supabase
     .from('family_groups')
     .select('*')
-    .eq('id', data.group_id)
-    .single();
+    .in('id', groupIds);
 
-  return group ?? null;
+  if (groupError) throw new Error('グループ情報の取得に失敗しました');
+  return groups ?? [];
 }
 
 export async function createGroup(name: string, ownerId: string): Promise<FamilyGroup> {
@@ -53,7 +53,12 @@ export async function joinGroup(inviteCode: string, userId: string): Promise<Fam
     .from('family_members')
     .insert({ group_id: group.id, user_id: userId, role: 'member' });
 
-  if (memberError) throw new Error(memberError.message);
+  if (memberError) {
+    if (memberError.code === '23505') {
+      throw new Error(`すでに「${group.name}」に参加しています`);
+    }
+    throw new Error(memberError.message);
+  }
 
   return group;
 }
@@ -66,4 +71,14 @@ export async function getMembers(groupId: string): Promise<FamilyMember[]> {
 
   if (error) throw new Error(error.message);
   return data ?? [];
+}
+
+export async function leaveGroup(groupId: string, userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('family_members')
+    .delete()
+    .eq('group_id', groupId)
+    .eq('user_id', userId);
+
+  if (error) throw new Error(error.message);
 }

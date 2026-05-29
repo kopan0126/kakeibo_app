@@ -89,7 +89,9 @@ export default function CalendarScreen() {
 
   return (
     <View style={styles.container}>
-      <ScopeSelector />
+      <View style={styles.scopeWrap}>
+        <ScopeSelector />
+      </View>
 
       <FlatList
         data={displayTransactions}
@@ -227,6 +229,7 @@ function TxRow({ tx, categories }: { tx: Transaction; categories: Category[] }) 
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: AI.washi },
+  scopeWrap: { marginTop: 48 },
   listContent: { paddingBottom: 40 },
   calendar: {
     borderRadius: 12, marginHorizontal: 12, marginBottom: 8,

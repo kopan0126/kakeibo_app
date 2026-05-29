@@ -2,11 +2,15 @@ import { create } from 'zustand';
 import type { FamilyGroup } from '../types';
 
 type GroupState = {
-  group: FamilyGroup | null;
-  setGroup: (group: FamilyGroup | null) => void;
+  groups: FamilyGroup[];
+  setGroups: (groups: FamilyGroup[]) => void;
+  addGroup: (group: FamilyGroup) => void;
+  removeGroup: (groupId: string) => void;
 };
 
 export const useGroupStore = create<GroupState>((set) => ({
-  group: null,
-  setGroup: (group) => set({ group }),
+  groups: [],
+  setGroups: (groups) => set({ groups }),
+  addGroup: (group) => set((s) => ({ groups: [...s.groups, group] })),
+  removeGroup: (groupId) => set((s) => ({ groups: s.groups.filter((g) => g.id !== groupId) })),
 }));

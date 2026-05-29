@@ -8,11 +8,12 @@ import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { useAuthStore } from '../stores/authStore';
 import { updateProfile, uploadAvatar, linkEmail, signOut } from '../services/auth';
+import { purchaseMonthly, restorePurchases } from '../services/purchases';
 import { supabase } from '../services/supabase';
 import { AI } from '../theme/aizome';
 
 export default function ProfileScreen({ navigation }: { navigation: any }) {
-  const { user, setUser } = useAuthStore();
+  const { user, setUser, isPremium, setPremium } = useAuthStore();
   const [displayName, setDisplayName] = useState(user?.display_name ?? '');
   const [avatarUrl, setAvatarUrl] = useState(user?.avatar_url ?? null);
   // メール登録（匿名ユーザー向け）
@@ -23,6 +24,8 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -132,6 +135,41 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
         },
       ],
     );
+  }
+
+  async function handlePurchase() {
+    setIsPurchasing(true);
+    try {
+      const success = await purchaseMonthly();
+      if (success) {
+        setPremium(true);
+        Alert.alert('登録完了', 'プレミアムプランへようこそ！広告が非表示になりました。');
+      }
+    } catch (e: any) {
+      // ユーザーが購入をキャンセルした場合は無視
+      if (!e?.userCancelled) {
+        Alert.alert('エラー', e?.message ?? '購入処理に失敗しました。');
+      }
+    } finally {
+      setIsPurchasing(false);
+    }
+  }
+
+  async function handleRestore() {
+    setIsRestoring(true);
+    try {
+      const success = await restorePurchases();
+      if (success) {
+        setPremium(true);
+        Alert.alert('復元完了', 'プレミアムプランが復元されました。');
+      } else {
+        Alert.alert('復元結果', '有効なサブスクリプションが見つかりませんでした。');
+      }
+    } catch (e: any) {
+      Alert.alert('エラー', e?.message ?? '復元に失敗しました。');
+    } finally {
+      setIsRestoring(false);
+    }
   }
 
   async function handleLinkEmail() {
@@ -253,6 +291,63 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
           </View>
         )}
 
+        {/* プレミアムプランセクション */}
+        <View style={styles.premiumSection}>
+          <View style={styles.premiumHeader}>
+            <Text style={styles.premiumTitle}>
+              {isPremium ? '★ プレミアムプラン' : 'プレミアムプラン'}
+            </Text>
+            <View style={[styles.premiumBadge, isPremium && styles.premiumBadgeActive]}>
+              <Text style={[styles.premiumBadgeText, isPremium && styles.premiumBadgeTextActive]}>
+                {isPremium ? '有効' : '無料'}
+              </Text>
+            </View>
+          </View>
+
+          {isPremium ? (
+            <>
+              <Text style={styles.premiumDesc}>
+                すべての広告が非表示になっています{'\n'}
+                ・レシートスキャンの広告をスキップ{'\n'}
+                ・バナー広告を非表示
+              </Text>
+              <Text style={styles.premiumManageHint}>
+                解約はApp Store / Google Playのサブスクリプション管理から行えます
+              </Text>
+            </>
+          ) : (
+            <>
+              <View style={styles.premiumPriceRow}>
+                <Text style={styles.premiumPrice}>¥480</Text>
+                <Text style={styles.premiumPricePer}> / 月（税込）</Text>
+              </View>
+              <Text style={styles.premiumDesc}>
+                ・レシートスキャンの広告をスキップ{'\n'}
+                ・バナー広告を非表示{'\n'}
+                ・いつでも解約可能
+              </Text>
+              <TouchableOpacity
+                style={[styles.premiumUpgradeBtn, isPurchasing && { opacity: 0.6 }]}
+                onPress={handlePurchase}
+                disabled={isPurchasing}
+              >
+                {isPurchasing
+                  ? <ActivityIndicator color={AI.brass} />
+                  : <Text style={styles.premiumUpgradeText}>プレミアムプランに登録する →</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.premiumRestoreBtn, isRestoring && { opacity: 0.6 }]}
+                onPress={handleRestore}
+                disabled={isRestoring}
+              >
+                {isRestoring
+                  ? <ActivityIndicator color={AI.textSoft} size="small" />
+                  : <Text style={styles.premiumRestoreText}>購入を復元する</Text>}
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
         {/* アプリ情報セクション */}
         <View style={styles.infoSection}>
           <TouchableOpacity
@@ -366,6 +461,42 @@ const styles = StyleSheet.create({
     paddingVertical: 14, alignItems: 'center',
   },
   linkBtnText: { color: AI.brass, fontWeight: 'bold', fontSize: 15, letterSpacing: 1 },
+
+  // プレミアムプラン
+  premiumSection: {
+    marginTop: 28, borderTopWidth: 1, borderTopColor: AI.rule, paddingTop: 24,
+  },
+  premiumHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10,
+  },
+  premiumTitle: { fontSize: 16, fontWeight: 'bold', color: AI.indigo },
+  premiumBadge: {
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
+    backgroundColor: AI.washi2, borderWidth: 1, borderColor: AI.rule,
+  },
+  premiumBadgeActive: { backgroundColor: AI.brass, borderColor: AI.brass },
+  premiumBadgeText: { fontSize: 12, color: AI.textSoft, fontWeight: '600' },
+  premiumBadgeTextActive: { color: AI.indigo },
+  premiumDesc: {
+    fontSize: 13, color: AI.textSoft, lineHeight: 20, marginBottom: 16,
+  },
+  premiumPriceRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 12 },
+  premiumPrice: { fontSize: 28, fontWeight: 'bold', color: AI.indigo },
+  premiumPricePer: { fontSize: 14, color: AI.textSoft },
+  premiumUpgradeBtn: {
+    backgroundColor: AI.indigo, borderRadius: 12, paddingVertical: 16, alignItems: 'center',
+    marginTop: 4,
+  },
+  premiumUpgradeText: { color: AI.brass, fontWeight: 'bold', fontSize: 15, letterSpacing: 0.5 },
+  premiumRestoreBtn: {
+    paddingVertical: 12, alignItems: 'center', marginTop: 4,
+  },
+  premiumRestoreText: { color: AI.textSoft, fontSize: 13 },
+  premiumManageHint: {
+    fontSize: 12, color: AI.textSoft, lineHeight: 18,
+    backgroundColor: AI.washi2, borderRadius: 8, padding: 12,
+    borderWidth: 1, borderColor: AI.rule, marginTop: 4,
+  },
 
   // アプリ情報
   infoSection: {

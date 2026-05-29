@@ -120,6 +120,11 @@ export default function MainNavigator() {
         options={{ headerShown: true, title: 'カテゴリ管理', headerBackTitle: '戻る' }}
       />
       <Stack.Screen
+        name="EditTransaction"
+        component={AddTransactionScreen}
+        options={{ headerShown: true, title: '記録を編集', headerBackTitle: '戻る' }}
+      />
+      <Stack.Screen
         name="Profile"
         component={ProfileScreen}
         options={{ headerShown: true, title: 'プロフィール編集', headerBackTitle: '戻る' }}

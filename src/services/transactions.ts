@@ -59,6 +59,19 @@ export async function createTransaction(
   return data;
 }
 
+export async function createTransactionBatch(
+  paramsList: Omit<Transaction, 'id' | 'created_at'>[],
+): Promise<Transaction[]> {
+  if (paramsList.length === 0) return [];
+  const { data, error } = await supabase
+    .from('transactions')
+    .insert(paramsList)
+    .select();
+
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
 export async function updateTransaction(
   id: string,
   params: Partial<Omit<Transaction, 'id' | 'created_at'>>,

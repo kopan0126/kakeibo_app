@@ -1,8 +1,9 @@
 import { useEffect, useCallback, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Modal,
+  StyleSheet, ActivityIndicator, Modal, Share,
 } from 'react-native';
+import * as Linking from 'expo-linking';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { useAuthStore } from '../stores/authStore';
@@ -16,6 +17,7 @@ import AdBanner from '../components/AdBanner';
 import AsanohaBg from '../components/AsanohaBg';
 import { AI } from '../theme/aizome';
 import { signOut } from '../services/auth';
+import { useGroupStore } from '../stores/groupStore';
 import type { Transaction, Category } from '../types';
 
 const DONUT_PALETTE = [
@@ -41,6 +43,7 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
     transactions, categories, currentMonth, isLoading,
     setTransactions, setCategories, setCurrentMonth, setLoading,
   } = useTransactionStore();
+  const { groups } = useGroupStore();
   const [showAccount, setShowAccount] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -145,6 +148,44 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
         <View style={styles.scopeWrap}>
           <ScopeSelector />
         </View>
+
+        {/* 家族共有カード */}
+        {groups.length > 0 ? (
+          groups.map((g) => (
+            <View key={g.id} style={styles.card}>
+              <Text style={styles.sectionTitle}>家族グループ</Text>
+              <Text style={styles.familyGroupName}>{g.name}</Text>
+              <Text style={styles.familyLabel}>招待コード</Text>
+              <View style={styles.familyCodeRow}>
+                <View style={styles.familyCodeBox}>
+                  <Text style={styles.familyCode}>{g.invite_code}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.familyShareBtn}
+                  onPress={() => {
+                    const link = Linking.createURL(`join/${g.invite_code}`);
+                    Share.share({
+                      message: `家計簿アプリで一緒に家計を管理しませんか？\n\n下のリンクからアプリを開いて自動参加できます👇\n${link}`,
+                    });
+                  }}
+                >
+                  <Text style={styles.familyShareText}>招待リンクを送る</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))
+        ) : (
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>家族で共有</Text>
+            <Text style={styles.familyDesc}>家族グループを作成すると、収支データを共有できます</Text>
+            <TouchableOpacity
+              style={styles.familySetupBtn}
+              onPress={() => navigation.navigate('Family')}
+            >
+              <Text style={styles.familySetupText}>家族設定を開く</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {isLoading && <ActivityIndicator style={{ marginVertical: 16 }} color={AI.brass} />}
 
@@ -367,6 +408,27 @@ const styles = StyleSheet.create({
 
   // スコープ
   scopeWrap: { marginHorizontal: -16, marginBottom: 4 },
+
+  // 家族共有カード
+  familyGroupName: { fontSize: 16, fontWeight: 'bold', color: AI.indigo, marginBottom: 10 },
+  familyLabel: { fontSize: 10, color: AI.textSoft, letterSpacing: 2, marginBottom: 6 },
+  familyCodeRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  familyCodeBox: {
+    flex: 1, backgroundColor: AI.indigo, borderRadius: 10,
+    paddingVertical: 10, alignItems: 'center',
+  },
+  familyCode: { fontSize: 20, fontWeight: 'bold', letterSpacing: 4, color: AI.brass },
+  familyShareBtn: {
+    backgroundColor: AI.brass, borderRadius: 10,
+    paddingVertical: 10, paddingHorizontal: 16,
+  },
+  familyShareText: { color: AI.indigo, fontWeight: 'bold', fontSize: 14 },
+  familyDesc: { fontSize: 13, color: AI.textSoft, marginBottom: 12 },
+  familySetupBtn: {
+    backgroundColor: AI.indigo, borderRadius: 12,
+    paddingVertical: 12, alignItems: 'center',
+  },
+  familySetupText: { color: AI.brass, fontWeight: 'bold', fontSize: 14, letterSpacing: 1 },
 
   // カード（グラフ・取引）
   card: {

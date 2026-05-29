@@ -4,6 +4,7 @@
 
 import { View, Text, StyleSheet } from 'react-native';
 import Constants from 'expo-constants';
+import { useAuthStore } from '../stores/authStore';
 
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
 
@@ -18,6 +19,11 @@ type Props = {
 };
 
 export default function AdBanner({ size = 'banner' }: Props) {
+  const { isPremium } = useAuthStore();
+
+  // プレミアムユーザーには広告を表示しない
+  if (isPremium) return null;
+
   // Expo Go ではスキップ（広告SDKが使えない）
   if (isExpoGo) {
     return null;
