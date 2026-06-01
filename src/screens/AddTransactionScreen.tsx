@@ -19,6 +19,7 @@ import {
   genLinkId, scopeToGroupId, txMatchesScope, askLinkedChoice, type ScopeKey,
 } from '../utils/transactionScope';
 import CategoryIcon, { isImageIcon } from '../components/CategoryIcon';
+import { hiddenCategoryIdSet } from '../utils/categoryVisibility';
 import { AI } from '../theme/aizome';
 import { trackTransactionSaved } from '../services/analytics';
 import type { CategoryType, Category, Transaction } from '../types';
@@ -197,7 +198,16 @@ export default function AddTransactionScreen({ navigation, route }: { navigation
     }
   }
 
-  const filteredCategories = categories.filter((c) => c.type === type);
+  // 非表示カテゴリは記入候補から除外。ただし「編集中の元カテゴリ」と
+  // 「現在選択中のカテゴリ」は非表示でも残す（編集時に選べなくならないように）
+  const hiddenIds = hiddenCategoryIdSet(user);
+  const filteredCategories = categories.filter(
+    (c) =>
+      c.type === type &&
+      (!hiddenIds.has(c.id) ||
+        c.id === selectedCategoryId ||
+        c.id === existingTx?.category_id),
+  );
   const dateLabel = format(selectedDate, 'yyyy年M月d日(E)', { locale: ja });
 
   return (
@@ -351,7 +361,7 @@ function CategoryCard({ cat, selected, onPress }: { cat: Category; selected: boo
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: AI.washi },
-  content: { padding: 16, paddingTop: 24, paddingBottom: 40 },
+  content: { padding: 16, paddingTop: 48, paddingBottom: 40 },
   toggleRow: { flexDirection: 'row', marginBottom: 16, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: AI.rule },
   toggleBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', backgroundColor: AI.washi2 },
   toggleText: { fontSize: 16, fontWeight: 'bold', color: AI.textSoft },
@@ -400,10 +410,10 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: AI.rule, alignItems: 'center',
   },
   scanBtnText: { color: AI.indigo, fontSize: 14, fontWeight: '600' },
-  scopeChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  scopeChips: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginBottom: 16 },
   scopeChip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-    backgroundColor: AI.washi2, borderWidth: 1, borderColor: AI.rule,
+    flex: 1, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+    backgroundColor: AI.washi2, borderWidth: 1, borderColor: AI.rule, alignItems: 'center',
   },
   scopeChipOn: { backgroundColor: AI.indigo, borderColor: AI.indigo },
   scopeChipText: { fontSize: 13, color: AI.textSoft, fontWeight: '600' },

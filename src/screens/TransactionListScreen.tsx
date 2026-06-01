@@ -200,7 +200,7 @@ function groupByDate(txs: Transaction[]) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: AI.washi },
-  scopeWrap: { marginTop: 108 },
+  scopeWrap: { marginTop: 48 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   monthRow: {
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center',

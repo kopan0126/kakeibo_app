@@ -3,6 +3,8 @@ export type UserProfile = {
   email: string;
   display_name: string;
   avatar_url: string | null;
+  // 記入画面で非表示にするカテゴリID（デフォルトカテゴリを各自で隠す用）
+  hidden_category_ids: string[];
   created_at: string;
 };
 

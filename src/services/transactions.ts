@@ -234,3 +234,22 @@ export async function deleteCustomCategory(id: string): Promise<void> {
     .eq('id', id);
   if (error) throw new Error(error.message);
 }
+
+// 記入画面でのカテゴリ非表示リストを更新（users.hidden_category_ids）
+// デフォルトカテゴリは全ユーザー共通レコードのため削除せず、ユーザーごとに隠す
+export async function setHiddenCategories(
+  userId: string,
+  hiddenIds: string[],
+): Promise<void> {
+  const { data, error } = await supabase
+    .from('users')
+    .update({ hidden_category_ids: hiddenIds })
+    .eq('id', userId)
+    .select('id');
+  if (error) throw new Error(error.message);
+  // RLS で弾かれた／対象行が無い場合、update はエラーを返さず 0 行になる。
+  // 沈黙の無更新を検知して呼び出し側にロールバックさせる。
+  if (!data || data.length === 0) {
+    throw new Error('プロフィールを更新できませんでした（対象の行が見つかりません）');
+  }
+}

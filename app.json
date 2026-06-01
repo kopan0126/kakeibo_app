@@ -16,11 +16,12 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.moriyaryoga.kakeibo",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "NSCameraUsageDescription": "レシートを撮影して自動で家計簿に記録するために、カメラへのアクセスが必要です。",
         "NSPhotoLibraryUsageDescription": "レシート画像の選択やカテゴリアイコンの設定のために、写真ライブラリへのアクセスが必要です。",
-        "NSUserTrackingUsageDescription": "お客様に関連性の高い広告を表示するために、トラッキングの許可をお願いしています。許可しなくてもアプリの全機能をご利用いただけます。"
+        "NSUserTrackingUsageDescription": "お客様に関連性の高い広告を表示するために、トラッキングの許可をお願いしています。許可しなくてもアプリの全機能をご利用いただけます。",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -33,7 +34,9 @@
       "versionCode": 1,
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.READ_MEDIA_IMAGES"
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.RECORD_AUDIO",
+        "com.google.android.gms.permission.AD_ID"
       ]
     },
     "web": {
@@ -50,7 +53,8 @@
           "iosAppId": "ca-app-pub-1205763421067066~3017185779"
         }
       ],
-      "expo-tracking-transparency"
+      "expo-tracking-transparency",
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "eas": {

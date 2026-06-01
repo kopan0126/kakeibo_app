@@ -62,7 +62,7 @@ src/
   types/        # TypeScript型定義
   utils/        # 日付・金額フォーマット、カテゴリマッピング
 supabase/
-  migrations/   # SQLマイグレーション（0001〜0010）
+  migrations/   # SQLマイグレーション（0001〜0012）
   functions/
     claude-proxy/ # Claude API中継（認証・レート制限付き）
     _shared/      # CORS設定など共通モジュール
@@ -114,6 +114,9 @@ Claudeは作業中に遭遇したバグ・エラーとその解決過程を「�
 - posthog-react-native v4 が `@posthog/core/surveys` 等のサブパスを使う → metro.config.js に手動リゾルバーを追加（unstable_enablePackageExports=false のため）
 - RevenueCat は Expo Go で動作しない → `Constants.executionEnvironment === 'storeClient'` でスキップ
 - receiptOcr の max_tokens: 512 では商品数が多いレシートで JSON が途中切れ → 2048 に設定
+- 新カラム追加マイグレーションは、それを使うクライアントより先にDBへ適用する。未適用だと PostgREST が「column ... does not exist」を返す（例: 0012 hidden_category_ids）
+- Supabase の `update().eq()` は対象行が無くても error=null で 0 行更新になる（沈黙の失敗）→ 更新を保証したい箇所は `.select('id')` で affected 行を確認する
+- Zustand の楽観更新で非同期保存する際、ハンドラ内で閉包の値を使うと全配列上書き時に競合する → `useStore.getState()` で最新値を読み、保存中は操作を直列化する
 
 ## 認証フロー
 - 初回起動: 匿名サインイン（Supabase Anonymous Auth）→ すぐにアプリを使い始められる
@@ -138,7 +141,7 @@ Claudeは作業中に遭遇したバグ・エラーとその解決過程を「�
 - ScopeSelector コンポーネントはホーム・履歴・カレンダー・レポートで共通利用
 
 ### カテゴリ管理
-- デフォルトカテゴリ（is_default=true）は編集不可
+- デフォルトカテゴリ（is_default=true）は名前・削除の変更不可（全ユーザー共通レコードのため）。ただし各ユーザーが記入画面で「非表示」にできる（users.hidden_category_ids 配列に保持、0012マイグレーション）。CategoryManageScreen でタップ切替、AddTransactionScreen の候補から除外
 - カスタムカテゴリ（is_default=false, user_id付き）はユーザーが作成・編集・削除可能
 - アイコンは絵文字 or 写真（data:image/jpeg;base64形式、80x80にリサイズ）
 - CategoryIcon コンポーネントで絵文字/画像を自動判別して表示

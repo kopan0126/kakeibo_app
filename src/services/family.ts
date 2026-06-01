@@ -21,11 +21,10 @@ export async function getMyGroups(userId: string): Promise<FamilyGroup[]> {
 }
 
 export async function createGroup(name: string, ownerId: string): Promise<FamilyGroup> {
-  const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-
+  // invite_code は DB の DEFAULT (gen_random_bytes) で自動生成される
   const { data: group, error: groupError } = await supabase
     .from('family_groups')
-    .insert({ name, owner_id: ownerId, invite_code: inviteCode })
+    .insert({ name, owner_id: ownerId })
     .select()
     .single();
 
@@ -40,27 +39,24 @@ export async function createGroup(name: string, ownerId: string): Promise<Family
   return group;
 }
 
-export async function joinGroup(inviteCode: string, userId: string): Promise<FamilyGroup> {
-  const { data: group, error } = await supabase
-    .from('family_groups')
-    .select('*')
-    .eq('invite_code', inviteCode.toUpperCase())
-    .single();
+export async function joinGroup(inviteCode: string, _userId: string): Promise<FamilyGroup> {
+  // 招待コードの検証と参加はサーバー側の SECURITY DEFINER 関数で行う
+  // （クライアントから group_id を直接指定して family_members に INSERT することは不可）
+  const { data, error } = await supabase
+    .rpc('join_group_by_invite', { p_invite_code: inviteCode });
 
-  if (error || !group) throw new Error('招待コードが見つかりません');
-
-  const { error: memberError } = await supabase
-    .from('family_members')
-    .insert({ group_id: group.id, user_id: userId, role: 'member' });
-
-  if (memberError) {
-    if (memberError.code === '23505') {
-      throw new Error(`すでに「${group.name}」に参加しています`);
+  if (error) {
+    if (error.message.includes('invalid_invite_code')) {
+      throw new Error('招待コードが見つかりません');
     }
-    throw new Error(memberError.message);
+    if (error.message.includes('already_member:')) {
+      const groupName = error.message.split('already_member:')[1] ?? '';
+      throw new Error(`すでに「${groupName}」に参加しています`);
+    }
+    throw new Error(error.message);
   }
 
-  return group;
+  return data as FamilyGroup;
 }
 
 export async function getMembers(groupId: string): Promise<FamilyMember[]> {

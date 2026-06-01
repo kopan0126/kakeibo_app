@@ -24,9 +24,9 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "kopandeveloper0126@gmail.com",
-        "ascAppId": "",
-        "appleTeamId": ""
+        "appleId": "moriya.ryoga@gmail.com",
+        "ascAppId": "6775499989",
+        "appleTeamId": "A5DFS7KCN2"
       },
       "android": {
         "track": "production",

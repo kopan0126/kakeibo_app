@@ -13,8 +13,10 @@ import {
   createCustomCategory,
   updateCustomCategory,
   deleteCustomCategory,
+  setHiddenCategories,
 } from '../services/transactions';
 import CategoryIcon, { isImageIcon } from '../components/CategoryIcon';
+import { hiddenCategoryIdSet } from '../utils/categoryVisibility';
 import { AI } from '../theme/aizome';
 import type { Category, CategoryType } from '../types';
 
@@ -41,7 +43,7 @@ const COLORS = [
 ];
 
 export default function CategoryManageScreen() {
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const { categories, setCategories } = useTransactionStore();
 
   const [activeType, setActiveType] = useState<CategoryType>('expense');
@@ -50,6 +52,7 @@ export default function CategoryManageScreen() {
   const [isCreating, setIsCreating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPickingPhoto, setIsPickingPhoto] = useState(false);
+  const [hidingId, setHidingId] = useState<string | null>(null);
 
   // モーダルフォーム状態
   const [formName, setFormName] = useState('');
@@ -65,6 +68,32 @@ export default function CategoryManageScreen() {
       console.error(e);
     }
   }, [setCategories]);
+
+  // 非表示カテゴリ（記入画面で隠すデフォルトカテゴリのID集合）
+  const hiddenIds = hiddenCategoryIdSet(user);
+
+  // デフォルトカテゴリの表示/非表示を切り替え（楽観更新 → 失敗時ロールバック）
+  // 保存中は他のトグルを直列化（hidingId ガード + ボタン disabled）し、
+  // ストアの最新値を getState() で読むことで「全配列上書き」による競合を防ぐ。
+  async function toggleHideDefault(cat: Category) {
+    if (hidingId !== null) return; // 別の保存が進行中なら無視（直列化）
+    const u = useAuthStore.getState().user;
+    if (!u) return;
+    const current = u.hidden_category_ids ?? [];
+    const next = current.includes(cat.id)
+      ? current.filter((id) => id !== cat.id)
+      : [...current, cat.id];
+    setHidingId(cat.id);
+    setUser({ ...u, hidden_category_ids: next });
+    try {
+      await setHiddenCategories(u.id, next);
+    } catch (e) {
+      setUser({ ...u, hidden_category_ids: current }); // ロールバック（直列化済みで安全）
+      Alert.alert('エラー', String(e));
+    } finally {
+      setHidingId(null);
+    }
+  }
 
   const defaultCategories = categories.filter(
     (c) => c.is_default && c.type === activeType,
@@ -200,16 +229,28 @@ export default function CategoryManageScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         {/* デフォルトカテゴリ */}
         <Text style={styles.sectionTitle}>デフォルトカテゴリ</Text>
-        <Text style={styles.sectionNote}>変更・削除はできません</Text>
+        <Text style={styles.sectionNote}>タップで記入画面の表示／非表示を切替（名前・削除は変更不可）</Text>
         <View style={styles.categoryGrid}>
-          {defaultCategories.map((cat) => (
-            <View key={cat.id} style={styles.catCard}>
-              <View style={[styles.catIconWrap, { backgroundColor: cat.color + '22' }]}>
-                <CategoryIcon icon={cat.icon} size={22} />
-              </View>
-              <Text style={styles.catName} numberOfLines={2}>{cat.name}</Text>
-            </View>
-          ))}
+          {defaultCategories.map((cat) => {
+            const hidden = hiddenIds.has(cat.id);
+            return (
+              <TouchableOpacity
+                key={cat.id}
+                style={[styles.catCard, hidden && styles.catCardHidden]}
+                onPress={() => toggleHideDefault(cat)}
+                disabled={hidingId !== null}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.catIconWrap, { backgroundColor: cat.color + '22' }]}>
+                  <CategoryIcon icon={cat.icon} size={22} />
+                </View>
+                <Text style={styles.catName} numberOfLines={2}>{cat.name}</Text>
+                <View style={styles.cardBadge}>
+                  <Text style={styles.cardBadgeText}>{hidden ? '🚫' : '👁'}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* カスタムカテゴリ */}
@@ -237,8 +278,8 @@ export default function CategoryManageScreen() {
                   <CategoryIcon icon={cat.icon} size={22} />
                 </View>
                 <Text style={styles.catName} numberOfLines={2}>{cat.name}</Text>
-                <View style={styles.editBadge}>
-                  <Text style={styles.editBadgeText}>✏️</Text>
+                <View style={styles.cardBadge}>
+                  <Text style={styles.cardBadgeText}>✏️</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -472,8 +513,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   catName: { fontSize: 10, color: AI.text, textAlign: 'center', lineHeight: 14 },
-  editBadge: { position: 'absolute', top: 4, right: 4 },
-  editBadgeText: { fontSize: 11 },
+  cardBadge: { position: 'absolute', top: 4, right: 4 },
+  cardBadgeText: { fontSize: 11 },
+  catCardHidden: { opacity: 0.4 },
   emptyBox: {
     backgroundColor: AI.washi2,
     borderRadius: 12,

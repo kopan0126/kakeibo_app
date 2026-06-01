@@ -22,6 +22,7 @@ export async function signUp(
     email: data.user.email ?? email,
     display_name: displayName,
     avatar_url: null,
+    hidden_category_ids: [],
     created_at: data.user.created_at,
   };
 
@@ -49,6 +50,7 @@ export async function signIn(
       email: data.user.email ?? email,
       display_name: '',
       avatar_url: null,
+      hidden_category_ids: [],
       created_at: data.user.created_at,
     },
     error: null,
@@ -114,6 +116,7 @@ export async function signInAnonymously(): Promise<{ user: UserProfile | null; e
       email: '',
       display_name: 'ゲスト',
       avatar_url: null,
+      hidden_category_ids: [],
       created_at: data.user.created_at,
     },
     error: null,

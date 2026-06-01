@@ -39,18 +39,20 @@ export default function ScopeSelector() {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
   pill: {
+    flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     backgroundColor: AI.washi2,
     borderWidth: 1,
     borderColor: AI.rule,
+    alignItems: 'center',
   },
   pillActive: {
     backgroundColor: AI.indigo,
