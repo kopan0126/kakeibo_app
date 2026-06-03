@@ -196,7 +196,11 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+      >
         {/* アバター */}
         <View style={styles.avatarSection}>
           <TouchableOpacity onPress={handlePickAvatar} disabled={isUploading}>

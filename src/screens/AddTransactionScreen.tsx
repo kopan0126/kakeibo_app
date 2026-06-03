@@ -266,7 +266,12 @@ export default function AddTransactionScreen({ navigation, route }: { navigation
   const dateLabel = formatDateFull(selectedDate);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets
+    >
       {/* 収入/支出トグル */}
       <View style={styles.toggleRow}>
         {(['expense', 'income'] as CategoryType[]).map((t) => (

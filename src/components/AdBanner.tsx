@@ -1,9 +1,18 @@
 import { View, StyleSheet, Platform } from 'react-native';
 import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
 import { AI } from '../theme/aizome';
 import { useAuthStore } from '../stores/authStore';
 
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
+
+// 本番広告ユニットを使うのは「production チャンネルのリリースビルド」のみ。
+// それ以外（__DEV__ の開発ビルド / staging・development チャンネル / 内部配信 /
+// チャンネル未設定 / Expo Go）はすべて AdMob のテストIDを使う。
+// staging などの内部配信ビルドは __DEV__===false になるため、__DEV__ 判定だけでは
+// テスターに実広告が出てしまい、閲覧・タップが無効トラフィック＝アカウント停止に
+// つながる。チャンネルで判定することでフェイルセーフにする。
+const isProductionRelease = !__DEV__ && Updates.channel === 'production';
 
 const BANNER_AD_UNIT_ID = Platform.select({
   ios: 'ca-app-pub-1205763421067066/9391022435',
@@ -28,9 +37,8 @@ export default function AdBanner({ size = 'banner' }: Props) {
 
   const { BannerAd, BannerAdSize, TestIds } = AdSDK;
 
-  // 開発ビルドでは本番広告ユニットを叩かない（自己クリックによる無効トラフィック＝
-  // AdMob アカウント停止を避けるため、__DEV__ ではテストIDを使う）
-  const unitId = __DEV__ ? TestIds.BANNER : BANNER_AD_UNIT_ID;
+  // production チャンネルのリリースのみ本番広告ユニットを叩く。それ以外はテストID。
+  const unitId = isProductionRelease ? BANNER_AD_UNIT_ID : TestIds.BANNER;
 
   return (
     <View style={styles.container}>

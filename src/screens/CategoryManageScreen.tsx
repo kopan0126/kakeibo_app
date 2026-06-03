@@ -245,9 +245,11 @@ export default function CategoryManageScreen() {
                   <CategoryIcon icon={cat.icon} size={22} />
                 </View>
                 <Text style={styles.catName} numberOfLines={2}>{cat.name}</Text>
-                <View style={styles.cardBadge}>
-                  <Text style={styles.cardBadgeText}>{hidden ? '🚫' : '👁'}</Text>
-                </View>
+                {hidden && (
+                  <View style={styles.cardBadge}>
+                    <Text style={styles.cardBadgeText}>🚫</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             );
           })}
@@ -314,6 +316,7 @@ export default function CategoryManageScreen() {
               style={styles.formScroll}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
+              automaticallyAdjustKeyboardInsets
             >
               {/* ── アイコン選択 ── */}
               <Text style={styles.formLabel}>アイコン</Text>

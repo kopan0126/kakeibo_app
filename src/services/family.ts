@@ -61,9 +61,20 @@ export async function joinGroup(inviteCode: string, _userId: string): Promise<Fa
 
 export type MemberProfile = { display_name: string; avatar_url: string | null };
 
+type ProfileRow = { id: string; display_name: string; avatar_url: string | null };
+
+function toProfileMap(rows: ProfileRow[]): Record<string, MemberProfile> {
+  const map: Record<string, MemberProfile> = {};
+  for (const u of rows) {
+    map[u.id] = { display_name: u.display_name, avatar_url: u.avatar_url };
+  }
+  return map;
+}
+
 // 取引の user_id 群から、表示用のプロフィール（名前・アバター）をまとめて取得する。
-// users テーブルは「同じグループのメンバーは閲覧可」の RLS があるため、
-// グループ取引の記入者は問題なく取得できる。
+// 相手（同グループメンバー）の users 行は RLS の適用状態に依存して取れないことが
+// あったため、RLS をバイパスする SECURITY DEFINER 関数 get_member_profiles を使う。
+// 関数が未適用の環境でも壊れないよう、失敗時は従来の直接クエリにフォールバックする。
 export async function getMemberProfiles(
   userIds: string[],
 ): Promise<Record<string, MemberProfile>> {
@@ -71,17 +82,20 @@ export async function getMemberProfiles(
   if (ids.length === 0) return {};
 
   const { data, error } = await supabase
+    .rpc('get_member_profiles', { p_user_ids: ids });
+
+  if (!error && data) {
+    return toProfileMap(data as ProfileRow[]);
+  }
+
+  // フォールバック: 関数未適用などで RPC が失敗した場合は RLS 経由で直接取得
+  const { data: rows, error: fbError } = await supabase
     .from('users')
     .select('id, display_name, avatar_url')
     .in('id', ids);
 
-  if (error) throw new Error(error.message);
-
-  const map: Record<string, MemberProfile> = {};
-  for (const u of data ?? []) {
-    map[u.id] = { display_name: u.display_name, avatar_url: u.avatar_url };
-  }
-  return map;
+  if (fbError) throw new Error(fbError.message);
+  return toProfileMap((rows ?? []) as ProfileRow[]);
 }
 
 export async function getMembers(groupId: string): Promise<FamilyMember[]> {

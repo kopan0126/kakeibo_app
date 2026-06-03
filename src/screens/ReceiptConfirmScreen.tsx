@@ -152,7 +152,12 @@ export default function ReceiptConfirmScreen({ route, navigation }: any) {
   const confidenceBanner = bannerMap[receipt.confidence] ?? bannerMap.low;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      automaticallyAdjustKeyboardInsets
+    >
       <Text style={styles.title}>読み取り結果を確認</Text>
 
       {/* 信頼度バナー */}

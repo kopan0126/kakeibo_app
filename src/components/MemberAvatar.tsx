@@ -22,7 +22,8 @@ export default function MemberAvatar({ name, avatarUrl, size = 28 }: Props) {
     );
   }
 
-  const initial = (name ?? '').trim().charAt(0) || '？';
+  // 表示名があれば頭文字、無ければ人型アイコン（「?」は出さない）
+  const initial = (name ?? '').trim().charAt(0);
   return (
     <View
       style={[
@@ -30,7 +31,9 @@ export default function MemberAvatar({ name, avatarUrl, size = 28 }: Props) {
         { width: size, height: size, borderRadius: size / 2 },
       ]}
     >
-      <Text style={[styles.initial, { fontSize: size * 0.45 }]}>{initial}</Text>
+      <Text style={[styles.initial, { fontSize: size * (initial ? 0.45 : 0.5) }]}>
+        {initial || '👤'}
+      </Text>
     </View>
   );
 }
