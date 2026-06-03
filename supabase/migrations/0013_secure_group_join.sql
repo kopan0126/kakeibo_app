@@ -12,8 +12,12 @@
 -- ── 1. invite_code の DEFAULT を CSPRNG に変更 ────────────────
 --   gen_random_bytes(4) → 4バイト = 32ビットのランダム値
 --   hex エンコード → 8文字の大文字16進数（例: "A3F2C8D1"）
+--   gen_random_bytes は pgcrypto 拡張の関数。Supabase では extensions スキーマに
+--   存在するため、拡張の存在を保証しスキーマ修飾して参照する。
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
 ALTER TABLE public.family_groups
-  ALTER COLUMN invite_code SET DEFAULT upper(encode(gen_random_bytes(4), 'hex'));
+  ALTER COLUMN invite_code SET DEFAULT upper(encode(extensions.gen_random_bytes(4), 'hex'));
 
 -- ── 2. 既存の members_insert_self を削除 ─────────────────────
 DROP POLICY IF EXISTS "members_insert_self" ON public.family_members;

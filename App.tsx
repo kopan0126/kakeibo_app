@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { View, ActivityIndicator, StyleSheet, Alert } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Alert, Platform } from 'react-native';
+import Constants from 'expo-constants';
+import { requestTrackingPermissionsAsync } from 'expo-tracking-transparency';
 import { StatusBar } from 'expo-status-bar';
 import * as Linking from 'expo-linking';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
@@ -130,6 +132,24 @@ export default function App() {
       }
     })();
   }, [user?.id]);
+
+  // AdMob 初期化：ATT許諾（iOS）→ SDK初期化（Expo Go ではスキップ）
+  useEffect(() => {
+    if (Constants.executionEnvironment === 'storeClient') return;
+    (async () => {
+      try {
+        if (Platform.OS === 'ios') {
+          await requestTrackingPermissionsAsync();
+        }
+        const { default: mobileAds } = require('react-native-google-mobile-ads') as {
+          default: () => { initialize(): Promise<unknown> };
+        };
+        await mobileAds().initialize();
+      } catch (e) {
+        console.error('AdMob init failed:', e);
+      }
+    })();
+  }, []);
 
   // ユーザーが確定したら RevenueCat を初期化してプレミアム状態を同期
   useEffect(() => {

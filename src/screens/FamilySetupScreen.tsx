@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Alert, ActivityIndicator, ScrollView, Share,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import * as Linking from 'expo-linking';
 import { useAuthStore } from '../stores/authStore';
@@ -85,7 +86,15 @@ export default function FamilySetupScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
+    >
       {/* 表示スコープ */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>表示スコープ</Text>
@@ -165,11 +174,12 @@ export default function FamilySetupScreen() {
         <Text style={styles.sectionTitle}>招待コードで参加する</Text>
         <TextInput
           style={styles.input}
-          placeholder="6文字の招待コード"
+          placeholder="8文字の招待コード（例: A3F2C8D1）"
           value={inviteCode}
           onChangeText={setInviteCode}
           autoCapitalize="characters"
-          maxLength={6}
+          autoCorrect={false}
+          maxLength={8}
         />
         <TouchableOpacity
           style={[styles.btn, styles.btnBlue, (!inviteCode.trim() || isLoading) && { opacity: 0.5 }]}
@@ -190,10 +200,12 @@ export default function FamilySetupScreen() {
         </TouchableOpacity>
       </View>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1, backgroundColor: AI.washi },
   container: { flex: 1, backgroundColor: AI.washi },
   scrollContent: { padding: 16, paddingBottom: 40 },
 

@@ -1,15 +1,34 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, FlatList, StyleSheet, ActivityIndicator,
 } from 'react-native';
-import { Calendar, DateData } from 'react-native-calendars';
+import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
+
+LocaleConfig.locales['ja'] = {
+  monthNames: [
+    '睦月（1月）', '如月（2月）', '弥生（3月）', '卯月（4月）',
+    '皐月（5月）', '水無月（6月）', '文月（7月）', '葉月（8月）',
+    '長月（9月）', '神無月（10月）', '霜月（11月）', '師走（12月）',
+  ],
+  monthNamesShort: [
+    '睦月', '如月', '弥生', '卯月', '皐月', '水無月',
+    '文月', '葉月', '長月', '神無月', '霜月', '師走',
+  ],
+  dayNames: ['日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'],
+  dayNamesShort: ['日', '月', '火', '水', '木', '金', '土'],
+  today: '今日',
+};
+LocaleConfig.defaultLocale = 'ja';
 import { useAuthStore } from '../stores/authStore';
 import { useViewStore } from '../stores/viewStore';
 import { useTransactionStore } from '../stores/transactionStore';
 import { getByMonth, getDailyTotals, getCategories } from '../services/transactions';
+import { getMemberProfiles, type MemberProfile } from '../services/family';
 import { formatCurrency } from '../utils/format';
 import ScopeSelector from '../components/ScopeSelector';
 import CategoryIcon, { isImageIcon } from '../components/CategoryIcon';
+import MemberAvatar from '../components/MemberAvatar';
 import { AI } from '../theme/aizome';
 import type { Transaction, Category } from '../types';
 
@@ -23,7 +42,11 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [monthTransactions, setMonthTransactions] = useState<Transaction[]>([]);
   const [dailyTotals, setDailyTotals] = useState<Record<string, { income: number; expense: number }>>({});
+  const [members, setMembers] = useState<Record<string, MemberProfile>>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  // グループ表示時のみ記入者（名前・アバター）を表示する
+  const showMember = selectedScope !== 'personal';
 
   useEffect(() => {
     if (categories.length === 0) {
@@ -41,6 +64,12 @@ export default function CalendarScreen() {
       ]);
       setMonthTransactions(txs);
       setDailyTotals(totals);
+      if (selectedScope !== 'personal') {
+        const profiles = await getMemberProfiles(txs.map((t) => t.user_id));
+        setMembers(profiles);
+      } else {
+        setMembers({});
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -48,7 +77,7 @@ export default function CalendarScreen() {
     }
   }, [user, selectedScope, currentYear, currentMonth, categories]);
 
-  useEffect(() => { loadMonthData(); }, [loadMonthData]);
+  useFocusEffect(useCallback(() => { loadMonthData(); }, [loadMonthData]));
 
   const todayStr = useMemo(() => {
     const d = new Date();
@@ -188,7 +217,12 @@ export default function CalendarScreen() {
           </>
         }
         renderItem={({ item }) => (
-          <TxRow tx={item} categories={categories} />
+          <TxRow
+            tx={item}
+            categories={categories}
+            member={members[item.user_id]}
+            showMember={showMember}
+          />
         )}
         ListEmptyComponent={
           !isLoading ? (
@@ -203,13 +237,26 @@ export default function CalendarScreen() {
   );
 }
 
-function TxRow({ tx, categories }: { tx: Transaction; categories: Category[] }) {
+function TxRow({
+  tx, categories, member, showMember,
+}: {
+  tx: Transaction;
+  categories: Category[];
+  member?: MemberProfile;
+  showMember: boolean;
+}) {
   const cat = categories.find((c) => c.id === tx.category_id);
   const isIncome = cat?.type === 'income';
   const icon = cat?.icon ?? '📦';
 
   return (
     <View style={styles.txRow}>
+      {showMember && (
+        <View style={styles.memberCol}>
+          <MemberAvatar name={member?.display_name ?? ''} avatarUrl={member?.avatar_url ?? null} size={28} />
+          <Text style={styles.memberName} numberOfLines={1}>{member?.display_name || '不明'}</Text>
+        </View>
+      )}
       <View style={[
         styles.txIconWrap,
         { backgroundColor: isImageIcon(icon) ? '#F0F0F0' : (cat?.color ?? '#9E9E9E') + '22' },
@@ -264,6 +311,8 @@ const styles = StyleSheet.create({
     backgroundColor: AI.washi2, borderRadius: 12, padding: 12, marginHorizontal: 12, marginBottom: 6,
     borderWidth: 1, borderColor: AI.rule,
   },
+  memberCol: { width: 44, alignItems: 'center', marginRight: 8 },
+  memberName: { fontSize: 9, color: AI.textSoft, marginTop: 3, maxWidth: 44, textAlign: 'center' },
   txIconWrap: { width: 40, height: 40, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginRight: 10, overflow: 'hidden' },
   txIcon: { fontSize: 20 },
   txInfo: { flex: 1 },

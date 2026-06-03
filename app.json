@@ -7,6 +7,15 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "updates": {
+      "url": "https://u.expo.dev/6f43bdb6-e70c-4353-adc0-a9fe49053ab3",
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "scheme": "kakeibo",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -16,7 +25,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.moriyaryoga.kakeibo",
-      "buildNumber": "2",
+      "buildNumber": "4",
       "infoPlist": {
         "NSCameraUsageDescription": "レシートを撮影して自動で家計簿に記録するために、カメラへのアクセスが必要です。",
         "NSPhotoLibraryUsageDescription": "レシート画像の選択やカテゴリアイコンの設定のために、写真ライブラリへのアクセスが必要です。",

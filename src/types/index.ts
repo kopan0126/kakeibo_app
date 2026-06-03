@@ -82,7 +82,6 @@ export type ParsedReceipt = {
   suggestedCategory: string;
   transactionType: 'expense' | 'income';
   confidence: 'high' | 'medium' | 'low';
-  rawText: string;
 };
 
 export type ReceiptItem = {

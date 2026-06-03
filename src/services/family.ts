@@ -59,6 +59,31 @@ export async function joinGroup(inviteCode: string, _userId: string): Promise<Fa
   return data as FamilyGroup;
 }
 
+export type MemberProfile = { display_name: string; avatar_url: string | null };
+
+// 取引の user_id 群から、表示用のプロフィール（名前・アバター）をまとめて取得する。
+// users テーブルは「同じグループのメンバーは閲覧可」の RLS があるため、
+// グループ取引の記入者は問題なく取得できる。
+export async function getMemberProfiles(
+  userIds: string[],
+): Promise<Record<string, MemberProfile>> {
+  const ids = Array.from(new Set(userIds));
+  if (ids.length === 0) return {};
+
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, display_name, avatar_url')
+    .in('id', ids);
+
+  if (error) throw new Error(error.message);
+
+  const map: Record<string, MemberProfile> = {};
+  for (const u of data ?? []) {
+    map[u.id] = { display_name: u.display_name, avatar_url: u.avatar_url };
+  }
+  return map;
+}
+
 export async function getMembers(groupId: string): Promise<FamilyMember[]> {
   const { data, error } = await supabase
     .from('family_members')

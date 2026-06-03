@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
-import { ja } from 'date-fns/locale';
 import { useAuthStore } from '../stores/authStore';
 import { useTransactionStore } from '../stores/transactionStore';
 import { useGroupStore } from '../stores/groupStore';
@@ -14,7 +13,7 @@ import {
   createTransactionBatch, getCategories,
   updateTransaction as updateTransactionApi, updateTransactionsByLink,
 } from '../services/transactions';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, formatDateFull } from '../utils/format';
 import {
   genLinkId, scopeToGroupId, txMatchesScope, askLinkedChoice, type ScopeKey,
 } from '../utils/transactionScope';
@@ -24,7 +23,29 @@ import { AI } from '../theme/aizome';
 import { trackTransactionSaved } from '../services/analytics';
 import type { CategoryType, Category, Transaction } from '../types';
 
-const KEYS = ['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', '00', '⌫'];
+const KEYROWS = [
+  ['7', '8', '9', '÷'],
+  ['4', '5', '6', '×'],
+  ['1', '2', '3', '-'],
+  ['0', '00', '⌫', '+'],
+  ['='],
+];
+
+const OP_KEYS = ['+', '-', '×', '÷'];
+
+// 金額の入力上限（8桁）。数字入力だけでなく計算結果もこの範囲に収め、
+// amount_cents（INTEGER）のオーバーフローを防ぐ
+const MAX_AMOUNT = 99999999;
+
+function calculate(a: number, op: string, b: number): number {
+  let result: number;
+  if (op === '+') result = a + b;
+  else if (op === '-') result = a - b;
+  else if (op === '×') result = Math.round(a * b);
+  else if (op === '÷') result = b === 0 ? a : Math.round(a / b);
+  else return a;
+  return Math.min(MAX_AMOUNT, Math.max(0, result));
+}
 
 export default function AddTransactionScreen({ navigation, route }: { navigation: any; route: any }) {
   const existingTx: Transaction | undefined = route?.params?.transaction;
@@ -53,6 +74,8 @@ export default function AddTransactionScreen({ navigation, route }: { navigation
 
   const [type, setType] = useState<CategoryType>(existingCat?.type ?? 'expense');
   const [amountStr, setAmountStr] = useState(existingTx ? String(existingTx.amount_cents) : '0');
+  const [operator, setOperator] = useState<string | null>(null);
+  const [accumulator, setAccumulator] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(existingTx?.category_id ?? null);
   const [memo, setMemo] = useState(existingTx?.memo ?? '');
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -80,7 +103,37 @@ export default function AddTransactionScreen({ navigation, route }: { navigation
 
   function handleKey(key: string) {
     if (key === '⌫') {
-      setAmountStr((s) => (s.length <= 1 ? '0' : s.slice(0, -1)));
+      if (operator !== null && amountStr === '0') {
+        setOperator(null);
+        setAmountStr(accumulator ?? '0');
+        setAccumulator(null);
+      } else {
+        setAmountStr((s) => (s.length <= 1 ? '0' : s.slice(0, -1)));
+      }
+      return;
+    }
+    if (OP_KEYS.includes(key)) {
+      if (operator !== null && accumulator !== null) {
+        // 第2オペランド入力済みなら中間結果を計算してチェーン。
+        // 未入力（amountStr==='0'）なら演算子だけ差し替え、accumulator は据え置く
+        if (amountStr !== '0') {
+          const result = calculate(parseInt(accumulator, 10), operator, parseInt(amountStr, 10));
+          setAccumulator(String(result));
+        }
+      } else {
+        setAccumulator(amountStr);
+      }
+      setOperator(key);
+      setAmountStr('0');
+      return;
+    }
+    if (key === '=') {
+      if (operator !== null && accumulator !== null) {
+        const result = calculate(parseInt(accumulator, 10), operator, parseInt(amountStr, 10));
+        setAmountStr(String(result));
+        setAccumulator(null);
+        setOperator(null);
+      }
       return;
     }
     setAmountStr((s) => {
@@ -95,7 +148,9 @@ export default function AddTransactionScreen({ navigation, route }: { navigation
   }
 
   async function handleSave() {
-    const amount = parseInt(amountStr, 10);
+    const amount = operator !== null && accumulator !== null
+      ? calculate(parseInt(accumulator, 10), operator, parseInt(amountStr, 10))
+      : parseInt(amountStr, 10);
     if (!amount || amount === 0) {
       Alert.alert('エラー', '金額を入力してください');
       return;
@@ -208,7 +263,7 @@ export default function AddTransactionScreen({ navigation, route }: { navigation
         c.id === selectedCategoryId ||
         c.id === existingTx?.category_id),
   );
-  const dateLabel = format(selectedDate, 'yyyy年M月d日(E)', { locale: ja });
+  const dateLabel = formatDateFull(selectedDate);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -229,6 +284,11 @@ export default function AddTransactionScreen({ navigation, route }: { navigation
 
       {/* 金額表示 */}
       <View style={styles.amountDisplay}>
+        {accumulator !== null && operator && (
+          <Text style={styles.calcHistText}>
+            ¥{parseInt(accumulator, 10).toLocaleString('ja-JP')} {operator}
+          </Text>
+        )}
         <Text style={styles.amountText}>
           ¥{parseInt(amountStr, 10).toLocaleString('ja-JP')}
         </Text>
@@ -236,10 +296,35 @@ export default function AddTransactionScreen({ navigation, route }: { navigation
 
       {/* テンキー */}
       <View style={styles.numpad}>
-        {KEYS.map((key) => (
-          <TouchableOpacity key={key} style={styles.numKey} onPress={() => handleKey(key)}>
-            <Text style={styles.numKeyText}>{key}</Text>
-          </TouchableOpacity>
+        {KEYROWS.map((row, rowIdx) => (
+          <View key={rowIdx} style={styles.numRow}>
+            {row.map((key) => {
+              const isOp = OP_KEYS.includes(key);
+              const isEq = key === '=';
+              const isActiveOp = isOp && key === operator;
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={[
+                    styles.numKey,
+                    isOp && styles.numKeyOp,
+                    isActiveOp && styles.numKeyOpActive,
+                    isEq && styles.numKeyEq,
+                  ]}
+                  onPress={() => handleKey(key)}
+                >
+                  <Text style={[
+                    styles.numKeyText,
+                    isOp && styles.numKeyOpText,
+                    isActiveOp && styles.numKeyOpActiveText,
+                    isEq && styles.numKeyEqText,
+                  ]}>
+                    {key}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         ))}
       </View>
 
@@ -370,14 +455,22 @@ const styles = StyleSheet.create({
     backgroundColor: AI.indigo, borderRadius: 16, padding: 24, alignItems: 'flex-end', marginBottom: 12,
     borderWidth: 1, borderColor: 'rgba(201,165,92,0.3)',
   },
+  calcHistText: { fontSize: 13, color: AI.brassSoft, marginBottom: 2, opacity: 0.85 },
   amountText: { fontSize: 40, fontWeight: '500', color: AI.washi, letterSpacing: -1 },
-  numpad: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 16, gap: 8 },
+  numpad: { marginBottom: 16, gap: 8 },
+  numRow: { flexDirection: 'row', gap: 8 },
   numKey: {
-    width: '30%', paddingVertical: 16, backgroundColor: AI.washi2,
+    flex: 1, paddingVertical: 16, backgroundColor: AI.washi2,
     borderRadius: 12, alignItems: 'center',
     borderWidth: 1, borderColor: AI.rule,
   },
+  numKeyOp: { backgroundColor: AI.indigo + '18', borderColor: AI.indigoSoft + '60' },
+  numKeyOpActive: { backgroundColor: AI.brass + '30', borderColor: AI.brass },
+  numKeyEq: { backgroundColor: AI.brass, borderColor: AI.brass },
   numKeyText: { fontSize: 22, fontWeight: '500', color: AI.indigo },
+  numKeyOpText: { fontSize: 22, fontWeight: '600', color: AI.indigo },
+  numKeyOpActiveText: { color: AI.brass },
+  numKeyEqText: { fontSize: 22, fontWeight: 'bold', color: AI.indigo },
   labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   label: { fontSize: 11, fontWeight: '600', color: AI.textSoft, letterSpacing: 3 },
   manageCatBtn: {

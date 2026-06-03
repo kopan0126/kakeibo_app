@@ -1,55 +1,51 @@
-// 広告バナーコンポーネント
-// EAS Build 後に react-native-google-mobile-ads を有効化する
-// Expo Go ではプレースホルダーを表示
-
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { AI } from '../theme/aizome';
 import { useAuthStore } from '../stores/authStore';
 
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
 
-// AdMob テスト用ID（本番前に実際のIDに差し替え）
-// const BANNER_AD_UNIT_ID = Platform.select({
-//   ios: 'ca-app-pub-xxxxx/xxxxx',
-//   android: 'ca-app-pub-xxxxx/xxxxx',
-// });
+const BANNER_AD_UNIT_ID = Platform.select({
+  ios: 'ca-app-pub-1205763421067066/9391022435',
+  android: 'ca-app-pub-1205763421067066/2341712595',
+}) ?? '';
 
-type Props = {
-  size?: 'banner' | 'large';
-};
+// react-native-google-mobile-ads はネイティブモジュールが必要なため Expo Go では使えない
+const AdSDK = isExpoGo ? null : (() => {
+  try {
+    return require('react-native-google-mobile-ads') as typeof import('react-native-google-mobile-ads');
+  } catch {
+    return null;
+  }
+})();
+
+type Props = { size?: 'banner' | 'large' };
 
 export default function AdBanner({ size = 'banner' }: Props) {
   const { isPremium } = useAuthStore();
 
-  // プレミアムユーザーには広告を表示しない
-  if (isPremium) return null;
+  if (isPremium || !AdSDK) return null;
 
-  // Expo Go ではスキップ（広告SDKが使えない）
-  if (isExpoGo) {
-    return null;
-  }
+  const { BannerAd, BannerAdSize, TestIds } = AdSDK;
 
-  // EAS Build 後に実装:
-  // import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
-  // return <BannerAd unitId={BANNER_AD_UNIT_ID} size={BannerAdSize.BANNER} />;
+  // 開発ビルドでは本番広告ユニットを叩かない（自己クリックによる無効トラフィック＝
+  // AdMob アカウント停止を避けるため、__DEV__ ではテストIDを使う）
+  const unitId = __DEV__ ? TestIds.BANNER : BANNER_AD_UNIT_ID;
 
-  // 開発中はプレースホルダー
   return (
-    <View style={[styles.container, size === 'large' && styles.large]}>
-      <Text style={styles.text}>Ad Placeholder</Text>
+    <View style={styles.container}>
+      <BannerAd
+        unitId={unitId}
+        size={size === 'large' ? BannerAdSize.LARGE_BANNER : BannerAdSize.BANNER}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    height: 50,
-    backgroundColor: '#F0F0F0',
-    justifyContent: 'center',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: AI.rule,
   },
-  large: { height: 100 },
-  text: { fontSize: 12, color: '#9E9E9E' },
 });

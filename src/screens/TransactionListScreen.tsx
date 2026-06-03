@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
   StyleSheet, Alert, ActivityIndicator,
@@ -7,6 +7,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useTransactionStore } from '../stores/transactionStore';
 import { useTransactionFilter } from '../hooks/useActiveGroupId';
 import { deleteTransaction, deleteTransactionsByLink, getTransactionsByMonth } from '../services/transactions';
+import { getMemberProfiles, type MemberProfile } from '../services/family';
 import { askLinkedChoice } from '../utils/transactionScope';
 import {
   formatCurrency, formatDate, formatMonth,
@@ -14,6 +15,7 @@ import {
 } from '../utils/format';
 import ScopeSelector from '../components/ScopeSelector';
 import CategoryIcon, { isImageIcon } from '../components/CategoryIcon';
+import MemberAvatar from '../components/MemberAvatar';
 import AdBanner from '../components/AdBanner';
 import { AI } from '../theme/aizome';
 import type { Transaction, Category } from '../types';
@@ -25,6 +27,10 @@ export default function TransactionListScreen({ navigation }: { navigation: any 
     transactions, categories, currentMonth, isLoading,
     setTransactions, removeTransaction, setCurrentMonth, setLoading,
   } = useTransactionStore();
+  const [members, setMembers] = useState<Record<string, MemberProfile>>({});
+
+  // グループ表示時は記入者を表示するため、メンバーのプロフィールを取得する
+  const showMember = !!filter.groupId;
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -33,6 +39,12 @@ export default function TransactionListScreen({ navigation }: { navigation: any 
       const { from, to } = getMonthRange(currentMonth);
       const txs = await getTransactionsByMonth(user.id, from, to, filter.showPersonal, filter.groupId);
       setTransactions(txs);
+      if (filter.groupId) {
+        const profiles = await getMemberProfiles(txs.map((t) => t.user_id));
+        setMembers(profiles);
+      } else {
+        setMembers({});
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -140,6 +152,8 @@ export default function TransactionListScreen({ navigation }: { navigation: any 
                   key={tx.id}
                   tx={tx}
                   categories={categories}
+                  member={members[tx.user_id]}
+                  showMember={showMember}
                   onEdit={() => handleEdit(tx)}
                   onDelete={() => handleDelete(tx)}
                 />
@@ -153,10 +167,12 @@ export default function TransactionListScreen({ navigation }: { navigation: any 
 }
 
 function TxRow({
-  tx, categories, onEdit, onDelete,
+  tx, categories, member, showMember, onEdit, onDelete,
 }: {
   tx: Transaction;
   categories: Category[];
+  member?: MemberProfile;
+  showMember: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -166,6 +182,12 @@ function TxRow({
   const icon = cat?.icon ?? '📦';
   return (
     <TouchableOpacity style={styles.txRow} onPress={onEdit} activeOpacity={0.7}>
+      {showMember && (
+        <View style={styles.memberCol}>
+          <MemberAvatar name={member?.display_name ?? ''} avatarUrl={member?.avatar_url ?? null} size={28} />
+          <Text style={styles.memberName} numberOfLines={1}>{member?.display_name || '不明'}</Text>
+        </View>
+      )}
       <View style={[
         styles.txIconWrap,
         { backgroundColor: isImageIcon(icon) ? '#F0F0F0' : (cat?.color ?? '#9E9E9E') + '22' },
@@ -221,6 +243,8 @@ const styles = StyleSheet.create({
     backgroundColor: AI.washi2, borderRadius: 12, padding: 12, marginBottom: 6,
     borderWidth: 1, borderColor: AI.rule,
   },
+  memberCol: { width: 44, alignItems: 'center', marginRight: 8 },
+  memberName: { fontSize: 9, color: AI.textSoft, marginTop: 3, maxWidth: 44, textAlign: 'center' },
   txIconWrap: { width: 40, height: 40, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginRight: 10, overflow: 'hidden' },
   txInfo: { flex: 1 },
   txCategory: { fontSize: 15, fontWeight: '500', color: AI.text },

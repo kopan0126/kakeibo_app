@@ -7,21 +7,30 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "channel": "development",
       "ios": {
         "simulator": true
       }
     },
-    "preview": {
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      }
+    "staging": {
+      "distribution": "store",
+      "channel": "staging",
+      "autoIncrement": true
     },
     "production": {
+      "distribution": "store",
+      "channel": "production",
       "autoIncrement": true
     }
   },
   "submit": {
+    "staging": {
+      "ios": {
+        "appleId": "moriya.ryoga@gmail.com",
+        "ascAppId": "6775499989",
+        "appleTeamId": "A5DFS7KCN2"
+      }
+    },
     "production": {
       "ios": {
         "appleId": "moriya.ryoga@gmail.com",

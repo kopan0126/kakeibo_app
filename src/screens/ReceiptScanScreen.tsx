@@ -37,12 +37,15 @@ export default function ReceiptScanScreen({ navigation }: Props) {
     }
   }
 
-  /** URI から 1200px・JPEG 0.6 に縮小して base64 を返す */
+  /** URI から 1000px幅・JPEG 0.8 に縮小して base64 を返す
+   *  Claude Vision は ~1.15MP に内部縮小するため解像度はこの程度で十分。
+   *  圧縮率を上げすぎると桁・小数点が潰れて誤読・失敗するため品質は 0.8 を確保する
+   *  （JPEG品質はトークン課金=画像寸法にほぼ影響しないので品質優先で問題ない）。 */
   async function resizeAndEncode(uri: string): Promise<string> {
     const manipulated = await ImageManipulator.manipulateAsync(
       uri,
-      [{ resize: { width: 800 } }],
-      { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+      [{ resize: { width: 1000 } }],
+      { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true },
     );
     if (!manipulated.base64) throw new Error('画像の変換に失敗しました');
     return manipulated.base64;

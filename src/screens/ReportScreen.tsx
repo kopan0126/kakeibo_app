@@ -203,7 +203,9 @@ export default function ReportScreen({ navigation }: { navigation: any }) {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.scopeRow}>
-        <ScopeSelector />
+        <View style={styles.scopeSelectorWrap}>
+          <ScopeSelector />
+        </View>
         <TouchableOpacity
           style={styles.familyBtn}
           onPress={() => navigation.navigate('Family')}
@@ -578,10 +580,12 @@ const styles = StyleSheet.create({
 
   // Scope + Family
   scopeRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    flexDirection: 'row', alignItems: 'center',
     paddingRight: 16, marginTop: 48,
   },
+  scopeSelectorWrap: { flex: 1 },
   familyBtn: {
+    flexShrink: 0, marginLeft: 8,
     paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 14, borderWidth: 1, borderColor: AI.rule,
     backgroundColor: AI.washi2,
