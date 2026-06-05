@@ -93,7 +93,11 @@ export default function App() {
     // セッションがある場合はその user.id を渡し、getCurrentUser 内の冗長な
     // auth.getUser()（サーバ検証の往復）を省いてプロフィール取得だけにする。
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
+        // TOKEN_REFRESHED はセッション更新のみで、ユーザー状態に変化なし。
+        // ここで処理するとオブジェクト参照が変わり → setUser → 再レンダリング → 無限ループになる。
+        if (event === 'TOKEN_REFRESHED') return;
+
         if (!session) {
           setUser(null);
           setLoading(false);
@@ -101,7 +105,13 @@ export default function App() {
         }
         try {
           const profile = await getCurrentUser(session.user.id);
-          setUser(profile);
+          if (profile) {
+            setUser(profile);
+          } else if (!useAuthStore.getState().user) {
+            // プロフィールが取れなかった場合、既存ユーザーは維持する（一時的な通信エラー対策）。
+            // まだユーザーがいない状態（初回起動など）のみ null にしてログイン画面へ。
+            setUser(null);
+          }
         } catch (e) {
           // プロフィール取得失敗（通信エラー等）でもローディングで固まらないようにする。
           // setUser は呼ばず、既存の null 初期値のままログイン画面へフォールバックさせる
