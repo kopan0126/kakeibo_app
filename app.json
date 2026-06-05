@@ -25,7 +25,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.moriyaryoga.kakeibo",
-      "buildNumber": "5",
+      "buildNumber": "7",
       "infoPlist": {
         "NSCameraUsageDescription": "レシートを撮影して自動で家計簿に記録するために、カメラへのアクセスが必要です。",
         "NSPhotoLibraryUsageDescription": "レシート画像の選択やカテゴリアイコンの設定のために、写真ライブラリへのアクセスが必要です。",

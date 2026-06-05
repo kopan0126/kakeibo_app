@@ -88,11 +88,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    getCurrentUser().then((profile) => {
-      setUser(profile);
-      setLoading(false);
-    });
-
+    // 二重取得を解消: 直接の getCurrentUser() は廃止し、起動直後に必ず発火する
+    // onAuthStateChange の INITIAL_SESSION に一本化する。
+    // セッションがある場合はその user.id を渡し、getCurrentUser 内の冗長な
+    // auth.getUser()（サーバ検証の往復）を省いてプロフィール取得だけにする。
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (!session) {
@@ -100,9 +99,16 @@ export default function App() {
           setLoading(false);
           return;
         }
-        const profile = await getCurrentUser();
-        setUser(profile);
-        setLoading(false);
+        try {
+          const profile = await getCurrentUser(session.user.id);
+          setUser(profile);
+        } catch (e) {
+          // プロフィール取得失敗（通信エラー等）でもローディングで固まらないようにする。
+          // setUser は呼ばず、既存の null 初期値のままログイン画面へフォールバックさせる
+          console.error('getCurrentUser failed:', e);
+        } finally {
+          setLoading(false);
+        }
       },
     );
 
@@ -157,10 +163,15 @@ export default function App() {
       setPremium(false);
       return;
     }
-    initializePurchases(user.id)
-      .then(() => checkPremiumStatus())
-      .then(setPremium)
-      .catch(console.error);
+    (async () => {
+      try {
+        await initializePurchases(user.id);
+        const premium = await checkPremiumStatus();
+        setPremium(premium);
+      } catch (e) {
+        console.error(e);
+      }
+    })();
   }, [user?.id, setPremium]);
 
   if (isLoading) {

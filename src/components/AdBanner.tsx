@@ -22,6 +22,8 @@ const BANNER_AD_UNIT_ID = Platform.select({
 // react-native-google-mobile-ads はネイティブモジュールが必要なため Expo Go では使えない
 const AdSDK = isExpoGo ? null : (() => {
   try {
+    // Expo Go では存在しないネイティブモジュールを実行時にだけ読み込むため require を使う
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     return require('react-native-google-mobile-ads') as typeof import('react-native-google-mobile-ads');
   } catch {
     return null;

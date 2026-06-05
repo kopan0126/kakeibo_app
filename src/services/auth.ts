@@ -62,14 +62,21 @@ export async function signOut(): Promise<{ error: AuthError | null }> {
   return { error: error ? { message: error.message } : null };
 }
 
-export async function getCurrentUser(): Promise<UserProfile | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+// knownUserId を渡すと auth.getUser()（サーバへのトークン検証往復）を省略し、
+// プロフィール取得だけを行う。onAuthStateChange のように検証済みセッションの
+// user.id が既に手元にある呼び出し元向け。未指定なら従来通り getUser() で確認する。
+export async function getCurrentUser(knownUserId?: string): Promise<UserProfile | null> {
+  let userId = knownUserId;
+  if (!userId) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    userId = user.id;
+  }
 
   const { data: profile } = await supabase
     .from('users')
     .select('*')
-    .eq('id', user.id)
+    .eq('id', userId)
     .single();
 
   return profile ?? null;
