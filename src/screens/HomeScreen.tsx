@@ -1,7 +1,7 @@
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Modal, Share,
+  StyleSheet, ActivityIndicator, Image, Share,
 } from 'react-native';
 import * as Linking from 'expo-linking';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,7 +16,6 @@ import CategoryIcon, { isImageIcon } from '../components/CategoryIcon';
 import AdBanner from '../components/AdBanner';
 import AsanohaBg from '../components/AsanohaBg';
 import { AI } from '../theme/aizome';
-import { signOut } from '../services/auth';
 import { useGroupStore } from '../stores/groupStore';
 import type { Transaction, Category } from '../types';
 
@@ -37,14 +36,13 @@ function arcPath(cx: number, cy: number, r: number, startDeg: number, endDeg: nu
 }
 
 export default function HomeScreen({ navigation }: { navigation: any }) {
-  const { user, setUser } = useAuthStore();
+  const { user } = useAuthStore();
   const filter = useTransactionFilter();
   const {
     transactions, categories, currentMonth, isLoading,
     setTransactions, setCategories, setCurrentMonth, setLoading,
   } = useTransactionStore();
   const { groups } = useGroupStore();
-  const [showAccount, setShowAccount] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -78,19 +76,17 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
   const pieData = buildPieData(transactions, categories);
   const recent = transactions.slice(0, 5);
 
-  async function handleSignOut() {
-    await signOut();
-    setUser(null);
-    setShowAccount(false);
-  }
-
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* ヘッダー */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>家計簿</Text>
-        <TouchableOpacity style={styles.accountBtn} onPress={() => setShowAccount(true)}>
-          <Text style={styles.accountIcon}>👤</Text>
+        <TouchableOpacity style={styles.accountBtn} onPress={() => navigation.navigate('Menu')}>
+          {user?.avatar_url ? (
+            <Image source={{ uri: user.avatar_url }} style={styles.accountAvatar} />
+          ) : (
+            <Text style={styles.accountIcon}>👤</Text>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -247,54 +243,6 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
 
       {/* 広告バナー */}
       <AdBanner />
-
-      {/* アカウント情報モーダル */}
-      <Modal
-        visible={showAccount}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowAccount(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowAccount(false)}
-        >
-          <TouchableOpacity activeOpacity={1} style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>アカウント情報</Text>
-
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>メールアドレス</Text>
-              <Text style={styles.infoValue}>{user?.email ?? '—'}</Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>ユーザーID</Text>
-              <Text style={styles.infoValueSmall} numberOfLines={1} ellipsizeMode="middle">
-                {user?.id ?? '—'}
-              </Text>
-            </View>
-
-            <View style={styles.dividerLine} />
-
-            <TouchableOpacity
-              style={styles.profileBtn}
-              onPress={() => { setShowAccount(false); navigation.navigate('Profile'); }}
-            >
-              <Text style={styles.profileBtnText}>プロフィールを編集</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
-              <Text style={styles.signOutText}>ログアウト</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.closeBtn} onPress={() => setShowAccount(false)}>
-              <Text style={styles.closeBtnText}>閉じる</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -359,6 +307,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
   accountIcon: { fontSize: 18 },
+  accountAvatar: { width: 38, height: 38, borderRadius: 19 },
   container: { flex: 1 },
   content: { paddingHorizontal: 16, paddingBottom: 32 },
 
@@ -468,42 +417,4 @@ const styles = StyleSheet.create({
   txRight: { alignItems: 'flex-end' },
   txAmount: { fontSize: 14, fontWeight: 'bold' },
   txDate: { fontSize: 10, color: AI.textSoft, marginTop: 2 },
-
-  // モーダル
-  modalOverlay: {
-    flex: 1, backgroundColor: 'rgba(14,23,41,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    backgroundColor: AI.washi,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    padding: 24, paddingBottom: 40,
-    borderTopWidth: 2, borderTopColor: AI.brass,
-  },
-  modalHandle: {
-    width: 40, height: 4, backgroundColor: AI.rule,
-    borderRadius: 2, alignSelf: 'center', marginBottom: 20,
-  },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: AI.indigo, marginBottom: 20, letterSpacing: 1 },
-  infoRow: { marginBottom: 16 },
-  infoLabel: { fontSize: 11, color: AI.textSoft, marginBottom: 4, letterSpacing: 2 },
-  infoValue: { fontSize: 15, color: AI.text, fontWeight: '500' },
-  infoValueSmall: { fontSize: 12, color: AI.indigoSoft, fontFamily: 'monospace' },
-  dividerLine: { height: 1, backgroundColor: AI.rule, marginVertical: 16 },
-  profileBtn: {
-    backgroundColor: AI.indigo, borderRadius: 12,
-    paddingVertical: 14, alignItems: 'center', marginBottom: 10,
-  },
-  profileBtnText: { color: AI.brass, fontWeight: 'bold', fontSize: 15, letterSpacing: 1 },
-  signOutBtn: {
-    borderWidth: 1, borderColor: AI.expense, borderRadius: 12,
-    paddingVertical: 14, alignItems: 'center', marginBottom: 10,
-  },
-  signOutText: { color: AI.expense, fontWeight: 'bold', fontSize: 15 },
-  closeBtn: {
-    backgroundColor: AI.washi2, borderRadius: 12,
-    paddingVertical: 14, alignItems: 'center',
-    borderWidth: 1, borderColor: AI.rule,
-  },
-  closeBtnText: { color: AI.textSoft, fontWeight: '600', fontSize: 15 },
 });

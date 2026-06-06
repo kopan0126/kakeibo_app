@@ -1,19 +1,17 @@
 import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
-  StyleSheet, Alert, ActivityIndicator, Image, Linking,
+  StyleSheet, Alert, ActivityIndicator, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { useAuthStore } from '../stores/authStore';
-import { updateProfile, uploadAvatar, linkEmail, signOut } from '../services/auth';
-import { purchaseMonthly, restorePurchases } from '../services/purchases';
-import { supabase } from '../services/supabase';
+import { updateProfile, uploadAvatar, linkEmail } from '../services/auth';
 import { AI } from '../theme/aizome';
 
 export default function ProfileScreen({ navigation }: { navigation: any }) {
-  const { user, setUser, isPremium, setPremium } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const [displayName, setDisplayName] = useState(user?.display_name ?? '');
   const [avatarUrl, setAvatarUrl] = useState(user?.avatar_url ?? null);
   // メール登録（匿名ユーザー向け）
@@ -23,9 +21,6 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
   const isAnonymous = !user?.email || user.email === '';
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isPurchasing, setIsPurchasing] = useState(false);
-  const [isRestoring, setIsRestoring] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -106,69 +101,6 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
       Alert.alert('エラー', String(e));
     } finally {
       setIsSaving(false);
-    }
-  }
-
-  async function handleDeleteAccount() {
-    Alert.alert(
-      'アカウントを削除',
-      'すべての家計データ・カテゴリ・グループ情報が完全に削除されます。この操作は取り消せません。本当に削除しますか？',
-      [
-        { text: 'キャンセル', style: 'cancel' },
-        {
-          text: '削除する',
-          style: 'destructive',
-          onPress: async () => {
-            setIsDeleting(true);
-            try {
-              const { error } = await supabase.functions.invoke('delete-account');
-              if (error) throw error;
-              await signOut();
-              setUser(null);
-            } catch (e) {
-              Alert.alert('エラー', 'アカウントの削除に失敗しました。しばらく待ってから再試行してください。');
-              console.error('delete-account error:', e);
-            } finally {
-              setIsDeleting(false);
-            }
-          },
-        },
-      ],
-    );
-  }
-
-  async function handlePurchase() {
-    setIsPurchasing(true);
-    try {
-      const success = await purchaseMonthly();
-      if (success) {
-        setPremium(true);
-        Alert.alert('登録完了', 'プレミアムプランへようこそ！広告が非表示になりました。');
-      }
-    } catch (e: any) {
-      // ユーザーが購入をキャンセルした場合は無視
-      if (!e?.userCancelled) {
-        Alert.alert('エラー', e?.message ?? '購入処理に失敗しました。');
-      }
-    } finally {
-      setIsPurchasing(false);
-    }
-  }
-
-  async function handleRestore() {
-    setIsRestoring(true);
-    try {
-      const success = await restorePurchases();
-      if (success) {
-        setPremium(true);
-        Alert.alert('復元完了', 'プレミアムプランが復元されました。');
-      } else {
-        Alert.alert('復元結果', '有効なサブスクリプションが見つかりませんでした。');
-      }
-    } catch (e: any) {
-      Alert.alert('エラー', e?.message ?? '復元に失敗しました。');
-    } finally {
-      setIsRestoring(false);
     }
   }
 
@@ -294,96 +226,6 @@ export default function ProfileScreen({ navigation }: { navigation: any }) {
             </TouchableOpacity>
           </View>
         )}
-
-        {/* プレミアムプランセクション */}
-        <View style={styles.premiumSection}>
-          <View style={styles.premiumHeader}>
-            <Text style={styles.premiumTitle}>
-              {isPremium ? '★ プレミアムプラン' : 'プレミアムプラン'}
-            </Text>
-            <View style={[styles.premiumBadge, isPremium && styles.premiumBadgeActive]}>
-              <Text style={[styles.premiumBadgeText, isPremium && styles.premiumBadgeTextActive]}>
-                {isPremium ? '有効' : '無料'}
-              </Text>
-            </View>
-          </View>
-
-          {isPremium ? (
-            <>
-              <Text style={styles.premiumDesc}>
-                すべての広告が非表示になっています{'\n'}
-                ・レシートスキャンの広告をスキップ{'\n'}
-                ・バナー広告を非表示
-              </Text>
-              <Text style={styles.premiumManageHint}>
-                解約はApp Store / Google Playのサブスクリプション管理から行えます
-              </Text>
-            </>
-          ) : (
-            <>
-              <View style={styles.premiumPriceRow}>
-                <Text style={styles.premiumPrice}>¥480</Text>
-                <Text style={styles.premiumPricePer}> / 月（税込）</Text>
-              </View>
-              <Text style={styles.premiumDesc}>
-                ・レシートスキャンの広告をスキップ{'\n'}
-                ・バナー広告を非表示{'\n'}
-                ・いつでも解約可能
-              </Text>
-              <TouchableOpacity
-                style={[styles.premiumUpgradeBtn, isPurchasing && { opacity: 0.6 }]}
-                onPress={handlePurchase}
-                disabled={isPurchasing}
-              >
-                {isPurchasing
-                  ? <ActivityIndicator color={AI.brass} />
-                  : <Text style={styles.premiumUpgradeText}>プレミアムプランに登録する →</Text>}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.premiumRestoreBtn, isRestoring && { opacity: 0.6 }]}
-                onPress={handleRestore}
-                disabled={isRestoring}
-              >
-                {isRestoring
-                  ? <ActivityIndicator color={AI.textSoft} size="small" />
-                  : <Text style={styles.premiumRestoreText}>購入を復元する</Text>}
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-
-        {/* アプリ情報セクション */}
-        <View style={styles.infoSection}>
-          <TouchableOpacity
-            style={styles.infoRow}
-            onPress={() => Linking.openURL('https://kopan0126.github.io/kakeibo_app/privacy-policy.html')}
-          >
-            <Text style={styles.infoRowText}>プライバシーポリシー</Text>
-            <Text style={styles.infoRowArrow}>›</Text>
-          </TouchableOpacity>
-          <View style={styles.infoDivider} />
-          <TouchableOpacity
-            style={styles.infoRow}
-            onPress={() => Linking.openURL('https://kopan0126.github.io/kakeibo_app/terms-of-service.html')}
-          >
-            <Text style={styles.infoRowText}>利用規約</Text>
-            <Text style={styles.infoRowArrow}>›</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.versionText}>家計簿 v1.0.0</Text>
-
-        {/* アカウント削除 */}
-        <TouchableOpacity
-          style={[styles.deleteAccountBtn, isDeleting && { opacity: 0.6 }]}
-          onPress={handleDeleteAccount}
-          disabled={isDeleting}
-        >
-          {isDeleting
-            ? <ActivityIndicator color={AI.danger} />
-            : <Text style={styles.deleteAccountText}>アカウントを削除する</Text>}
-        </TouchableOpacity>
-
       </ScrollView>
     </SafeAreaView>
   );
@@ -465,66 +307,4 @@ const styles = StyleSheet.create({
     paddingVertical: 14, alignItems: 'center',
   },
   linkBtnText: { color: AI.brass, fontWeight: 'bold', fontSize: 15, letterSpacing: 1 },
-
-  // プレミアムプラン
-  premiumSection: {
-    marginTop: 28, borderTopWidth: 1, borderTopColor: AI.rule, paddingTop: 24,
-  },
-  premiumHeader: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10,
-  },
-  premiumTitle: { fontSize: 16, fontWeight: 'bold', color: AI.indigo },
-  premiumBadge: {
-    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20,
-    backgroundColor: AI.washi2, borderWidth: 1, borderColor: AI.rule,
-  },
-  premiumBadgeActive: { backgroundColor: AI.brass, borderColor: AI.brass },
-  premiumBadgeText: { fontSize: 12, color: AI.textSoft, fontWeight: '600' },
-  premiumBadgeTextActive: { color: AI.indigo },
-  premiumDesc: {
-    fontSize: 13, color: AI.textSoft, lineHeight: 20, marginBottom: 16,
-  },
-  premiumPriceRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 12 },
-  premiumPrice: { fontSize: 28, fontWeight: 'bold', color: AI.indigo },
-  premiumPricePer: { fontSize: 14, color: AI.textSoft },
-  premiumUpgradeBtn: {
-    backgroundColor: AI.indigo, borderRadius: 12, paddingVertical: 16, alignItems: 'center',
-    marginTop: 4,
-  },
-  premiumUpgradeText: { color: AI.brass, fontWeight: 'bold', fontSize: 15, letterSpacing: 0.5 },
-  premiumRestoreBtn: {
-    paddingVertical: 12, alignItems: 'center', marginTop: 4,
-  },
-  premiumRestoreText: { color: AI.textSoft, fontSize: 13 },
-  premiumManageHint: {
-    fontSize: 12, color: AI.textSoft, lineHeight: 18,
-    backgroundColor: AI.washi2, borderRadius: 8, padding: 12,
-    borderWidth: 1, borderColor: AI.rule, marginTop: 4,
-  },
-
-  // アプリ情報
-  infoSection: {
-    marginTop: 28, borderTopWidth: 1, borderTopColor: AI.rule, paddingTop: 8,
-    backgroundColor: AI.washi2, borderRadius: 12,
-    borderWidth: 1, borderColor: AI.rule,
-  },
-  infoRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 14,
-  },
-  infoRowText: { fontSize: 15, color: AI.text },
-  infoRowArrow: { fontSize: 20, color: AI.textSoft },
-  infoDivider: { height: 1, backgroundColor: AI.rule, marginHorizontal: 16 },
-  versionText: {
-    textAlign: 'center', fontSize: 12, color: AI.textSoft,
-    marginTop: 24, marginBottom: 8,
-  },
-
-  // アカウント削除
-  deleteAccountBtn: {
-    marginTop: 32, marginBottom: 16,
-    borderWidth: 1, borderColor: AI.danger, borderRadius: 12,
-    paddingVertical: 14, alignItems: 'center',
-  },
-  deleteAccountText: { color: AI.danger, fontSize: 14, fontWeight: '600' },
 });

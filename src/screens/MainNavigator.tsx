@@ -11,6 +11,8 @@ import ReceiptScanScreen from './ReceiptScanScreen';
 import ReceiptConfirmScreen from './ReceiptConfirmScreen';
 import CategoryManageScreen from './CategoryManageScreen';
 import ProfileScreen from './ProfileScreen';
+import MenuScreen from './MenuScreen';
+import PremiumScreen from './PremiumScreen';
 import { AI } from '../theme/aizome';
 
 const Tab = createBottomTabNavigator();
@@ -125,9 +127,19 @@ export default function MainNavigator() {
         options={{ headerShown: true, title: '記録を編集', headerBackTitle: '戻る' }}
       />
       <Stack.Screen
+        name="Menu"
+        component={MenuScreen}
+        options={{ headerShown: true, title: 'メニュー', headerBackTitle: '戻る' }}
+      />
+      <Stack.Screen
         name="Profile"
         component={ProfileScreen}
         options={{ headerShown: true, title: 'プロフィール編集', headerBackTitle: '戻る' }}
+      />
+      <Stack.Screen
+        name="Premium"
+        component={PremiumScreen}
+        options={{ headerShown: true, title: 'プレミアムプラン', headerBackTitle: '戻る' }}
       />
     </Stack.Navigator>
   );
