@@ -13,6 +13,7 @@ import { getTransactionsByMonth, getCategories } from '../services/transactions'
 import { formatCurrency, formatDate, formatMonth, getMonthRange, prevMonth, nextMonth } from '../utils/format';
 import ScopeSelector from '../components/ScopeSelector';
 import CategoryIcon, { isImageIcon } from '../components/CategoryIcon';
+import { hasAizomeCategoryIcon } from '../components/AizomeCategoryIcons';
 import AdBanner from '../components/AdBanner';
 import AsanohaBg from '../components/AsanohaBg';
 import { AI } from '../theme/aizome';
@@ -253,8 +254,8 @@ function TransactionRow({ tx, categories }: { tx: Transaction; categories: Categ
   const icon = cat?.icon ?? '📦';
   return (
     <View style={styles.txRow}>
-      <View style={[styles.txIconWrap, { backgroundColor: isImageIcon(icon) ? AI.washi2 : AI.indigo }]}>
-        <CategoryIcon icon={icon} size={20} />
+      <View style={[styles.txIconWrap, { backgroundColor: hasAizomeCategoryIcon(cat?.name) ? AI.chip : isImageIcon(icon) ? AI.washi2 : AI.indigo }]}>
+        <CategoryIcon icon={icon} size={28} name={cat?.name} />
       </View>
       <View style={styles.txInfo}>
         <Text style={styles.txCategory}>{cat?.name ?? '不明'}</Text>

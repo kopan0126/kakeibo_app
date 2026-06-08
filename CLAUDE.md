@@ -44,8 +44,8 @@ iPhone/Android両対応の家計簿アプリ。家族で収支を共有し、SVG
 ## ディレクトリ構成
 ```
 src/
-  screens/      # 画面コンポーネント（11画面 + MainPlaceholder※未使用）
-  components/   # 共通UI（ScopeSelector, CategoryIcon, AsanohaBg, AdBanner, RewardedAdModal）
+  screens/      # 画面コンポーネント（13画面 + MainNavigator + MainPlaceholder※未使用）
+  components/   # 共通UI（ScopeSelector, CategoryIcon, AizomeCategoryIcons, MemberAvatar, AsanohaBg, AdBanner, RewardedAdModal）
   hooks/        # useTransactionFilter（ファイル名: useActiveGroupId.ts）
   stores/       # Zustand ストア（authStore, transactionStore, groupStore, viewStore）
   services/
@@ -53,19 +53,20 @@ src/
     receiptOcr.ts   # レシート画像解析
     supabase.ts     # Supabaseクライアント
     transactions.ts # 取引CRUD + カテゴリ管理
-    auth.ts         # 認証（匿名 + メール昇格）
+    auth.ts         # 認証（匿名 + メール）
     family.ts       # グループ作成・参加・メンバー管理
     purchases.ts    # RevenueCat（IAP / プレミアム判定）
     analytics.ts    # PostHog（画面追跡・イベント計測）
     notification.ts # プッシュ通知
   theme/        # 藍染テーマ定義
   types/        # TypeScript型定義
-  utils/        # 日付・金額フォーマット、カテゴリマッピング
+  utils/        # format（日付・金額）, categoryMapping, categoryVisibility, transactionScope
 supabase/
-  migrations/   # SQLマイグレーション（0001〜0012）
+  migrations/   # SQLマイグレーション（0001〜0015）
   functions/
-    claude-proxy/ # Claude API中継（認証・レート制限付き）
-    _shared/      # CORS設定など共通モジュール
+    claude-proxy/   # Claude API中継（認証・レート制限付き）
+    delete-account/ # アカウント削除（関連データ一括削除）
+    _shared/        # CORS設定など共通モジュール
   seeds/        # シードデータ
 ```
 
@@ -101,7 +102,6 @@ Claudeは作業中に遭遇したバグ・エラーとその解決過程を「�
 - Expo Goでは広告SDK / 通知は動作しない。Constants.executionEnvironment でスキップする
 
 ## 過去のデバッグ記録（繰り返し防止）
-- `EXPO_PUBLIC_` プレフィックスの環境変数はビルドに埋め込まれるため、APIキーには使わない
 - `anthropic-dangerous-direct-browser-access` ヘッダーはEdge Function経由なら不要
 - `CREATE TABLE IF NOT EXISTS` は既存テーブルがあると何もしない → スキーマ変更は DROP + CREATE が必要
 - expo-image-manipulator の npm install で ERESOLVE エラー → `--legacy-peer-deps` で解決
@@ -124,8 +124,9 @@ Claudeは作業中に遭遇したバグ・エラーとその解決過程を「�
 - レシートOCRで「お預かり金額」を合計と誤判定 → 否定指示だけでは不十分。プロンプトに具体例（「合計1,580/お預かり2,000/お釣り420 → totalは1580」）を入れ、「金額の隣のラベルを読み『合計』ラベルの額だけ採用」と明示すると確実に改善。「最終合計」という表現は最下部のお預かり/お釣りを拾う誘因になるので使わない。あわせて未使用だった rawText（画像テキスト全文）を出力JSONから削除し出力トークンを節約（精度向上とコスト削減を同時に達成）
 
 ## 認証フロー
-- 初回起動: 匿名サインイン（Supabase Anonymous Auth）→ すぐにアプリを使い始められる
-- メール登録: ProfileScreen からオプションで登録（`linkEmail()` でアカウント昇格）
+- 初回起動: AuthScreen を表示（ログイン / 新規登録 / 「登録なしで始める」の3択）
+- ゲスト開始: 「登録なしで始める」で匿名サインイン（Supabase Anonymous Auth）→ すぐに使い始められる
+- メール登録: AuthScreen の新規登録、または ProfileScreen から後付け登録（`linkEmail()` でアカウント昇格）
 - データ引き継ぎ: 匿名→メール登録後もデータは維持される
 
 ## 設計メモ
@@ -138,7 +139,9 @@ Claudeは作業中に遭遇したバグ・エラーとその解決過程を「�
 4. 歴（履歴） — TransactionListScreen
 5. 析（分析） — ReportScreen
 
-スタック画面: ReceiptScan, ReceiptConfirm, Family, CategoryManage, Profile
+スタック画面: ReceiptScan, ReceiptConfirm, Family, CategoryManage, EditTransaction（AddTransactionScreen を編集モードで再利用）, Menu, Profile, Premium
+
+未ログイン時（user==null）は AuthScreen を表示。それ以外は MainNavigator。
 
 ### 入力・表示スコープ
 - 入力は常に個人（user_id）に紐付ける。AddTransactionScreenにグループ選択なし
@@ -149,7 +152,9 @@ Claudeは作業中に遭遇したバグ・エラーとその解決過程を「�
 - デフォルトカテゴリ（is_default=true）は名前・削除の変更不可（全ユーザー共通レコードのため）。ただし各ユーザーが記入画面で「非表示」にできる（users.hidden_category_ids 配列に保持、0012マイグレーション）。CategoryManageScreen でタップ切替、AddTransactionScreen の候補から除外
 - カスタムカテゴリ（is_default=false, user_id付き）はユーザーが作成・編集・削除可能
 - アイコンは絵文字 or 写真（data:image/jpeg;base64形式、80x80にリサイズ）
-- CategoryIcon コンポーネントで絵文字/画像を自動判別して表示
+- CategoryIcon コンポーネントで絵文字/画像/和の線画を自動判別して表示
+- 藍染カテゴリアイコン（AizomeCategoryIcons.tsx）: デフォルトカテゴリ名（食費/外食/交通費/医療/サブスク/その他/娯楽/日用品/衣類/税金/給与/副業/お年玉）に一致すると、絵文字の代わりに indigo+brass の和の家紋風 react-native-svg 線画を描画（claude.ai/design「カテゴリの紋」由来）。色はカテゴリ色に依存せず固定。写真アイコンは常に優先（線画で上書きしない）。線画表示時はアイコン台座を明るいクリーム `AI.chip` にする（indigo 線が暗背景で消えるのを防ぐ）
+- デフォルトカテゴリ刷新（0015）: 支出に「サブスク」「税金」、収入に「お年玉」を追加。収入の汎用「その他収入」は削除（既存取引があれば「給与」へ付け替えてから削除。FK が ON DELETE CASCADE でないため付け替え必須）。収入デフォルトは 給与/副業/お年玉 の3種
 
 ### 課金（RevenueCat）
 - authStore.isPremium でプレミアム状態を管理
@@ -190,15 +195,9 @@ Claudeは作業中に遭遇したバグ・エラーとその解決過程を「�
 - 画像はBase64でEdge Functionに送信。ファイル保存は行わない（プライバシー）
 
 ## 公開準備ステータス
-- [x] APIキーのサーバー移行（Edge Function）
-- [x] 藍染デザインテーマの全画面適用
-- [x] 匿名認証 → メール登録の段階的オンボーディング
-- [x] PostHog 分析基盤の統合
-- [x] RevenueCat 課金基盤の統合（APIキーはプレースホルダー）
-- [x] アプリ識別子の設定（com.moriya.kakeibo）
-- [x] スプラッシュ画面の背景色を藍染テーマに統一
-- [x] アプリアイコンのオリジナルデザイン（generate_icons.py で生成、藍染テーマ統一）
-- [x] AdBanner の実装（AdMob SDK 接続）
+実装済み: Edge Function でのAPIキー管理 / 藍染テーマ全画面適用 / 匿名→メールのオンボーディング / PostHog分析 / RevenueCat課金（APIキーはプレースホルダー）/ アプリ識別子（com.moriya.kakeibo）/ アイコン・スプラッシュ（generate_icons.py 生成）/ AdBanner（AdMob接続）
+
+残タスク:
 - [ ] RevenueCat APIキーの本番設定
 - [ ] プライバシーポリシー・利用規約
 - [ ] Apple Developer Account 登録

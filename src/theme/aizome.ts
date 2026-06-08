@@ -5,6 +5,7 @@ export const AI = {
   indigoSoft: '#384d75',
   washi:      '#F1E8D3',   // 和紙クリーム
   washi2:     '#E8DCC0',
+  chip:       '#FBF6E9',   // カテゴリアイコンの台座（線画が映える明るいクリーム）
   ink:        '#0E1729',
   text:       '#15243F',
   textSoft:   '#5a6378',

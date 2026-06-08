@@ -18,6 +18,7 @@ import {
   genLinkId, scopeToGroupId, txMatchesScope, askLinkedChoice, type ScopeKey,
 } from '../utils/transactionScope';
 import CategoryIcon, { isImageIcon } from '../components/CategoryIcon';
+import { hasAizomeCategoryIcon } from '../components/AizomeCategoryIcons';
 import { hiddenCategoryIdSet } from '../utils/categoryVisibility';
 import { AI } from '../theme/aizome';
 import { trackTransactionSaved } from '../services/analytics';
@@ -440,9 +441,9 @@ function CategoryCard({ cat, selected, onPress }: { cat: Category; selected: boo
     >
       <View style={[
         styles.catIcon,
-        { backgroundColor: isImageIcon(cat.icon) ? '#F0F0F0' : cat.color + '22' },
+        { backgroundColor: hasAizomeCategoryIcon(cat.name) ? AI.chip : isImageIcon(cat.icon) ? '#F0F0F0' : cat.color + '22' },
       ]}>
-        <CategoryIcon icon={cat.icon} size={22} />
+        <CategoryIcon icon={cat.icon} size={34} name={cat.name} />
       </View>
       <Text style={styles.catName}>{cat.name}</Text>
     </TouchableOpacity>

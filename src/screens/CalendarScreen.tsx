@@ -28,6 +28,7 @@ import { getMemberProfiles, type MemberProfile } from '../services/family';
 import { formatCurrency } from '../utils/format';
 import ScopeSelector from '../components/ScopeSelector';
 import CategoryIcon, { isImageIcon } from '../components/CategoryIcon';
+import { hasAizomeCategoryIcon } from '../components/AizomeCategoryIcons';
 import MemberAvatar from '../components/MemberAvatar';
 import { AI } from '../theme/aizome';
 import type { Transaction, Category } from '../types';
@@ -259,9 +260,9 @@ function TxRow({
       )}
       <View style={[
         styles.txIconWrap,
-        { backgroundColor: isImageIcon(icon) ? '#F0F0F0' : (cat?.color ?? '#9E9E9E') + '22' },
+        { backgroundColor: hasAizomeCategoryIcon(cat?.name) ? AI.chip : isImageIcon(icon) ? '#F0F0F0' : (cat?.color ?? '#9E9E9E') + '22' },
       ]}>
-        <CategoryIcon icon={icon} size={20} />
+        <CategoryIcon icon={icon} size={34} name={cat?.name} />
       </View>
       <View style={styles.txInfo}>
         <Text style={styles.txCategory}>{cat?.name ?? '不明'}</Text>

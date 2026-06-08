@@ -16,6 +16,7 @@ import {
   setHiddenCategories,
 } from '../services/transactions';
 import CategoryIcon, { isImageIcon } from '../components/CategoryIcon';
+import { hasAizomeCategoryIcon } from '../components/AizomeCategoryIcons';
 import { hiddenCategoryIdSet } from '../utils/categoryVisibility';
 import { AI } from '../theme/aizome';
 import type { Category, CategoryType } from '../types';
@@ -241,8 +242,8 @@ export default function CategoryManageScreen() {
                 disabled={hidingId !== null}
                 activeOpacity={0.7}
               >
-                <View style={[styles.catIconWrap, { backgroundColor: cat.color + '22' }]}>
-                  <CategoryIcon icon={cat.icon} size={22} />
+                <View style={[styles.catIconWrap, { backgroundColor: hasAizomeCategoryIcon(cat.name) ? AI.chip : cat.color + '22' }]}>
+                  <CategoryIcon icon={cat.icon} size={38} name={cat.name} />
                 </View>
                 <Text style={styles.catName} numberOfLines={2}>{cat.name}</Text>
                 {hidden && (
@@ -275,9 +276,9 @@ export default function CategoryManageScreen() {
               >
                 <View style={[
                   styles.catIconWrap,
-                  { backgroundColor: isImageIcon(cat.icon) ? '#F0F0F0' : cat.color + '22' },
+                  { backgroundColor: hasAizomeCategoryIcon(cat.name) ? AI.chip : isImageIcon(cat.icon) ? '#F0F0F0' : cat.color + '22' },
                 ]}>
-                  <CategoryIcon icon={cat.icon} size={22} />
+                  <CategoryIcon icon={cat.icon} size={38} name={cat.name} />
                 </View>
                 <Text style={styles.catName} numberOfLines={2}>{cat.name}</Text>
                 <View style={styles.cardBadge}>
