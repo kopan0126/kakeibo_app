@@ -243,12 +243,16 @@ export default function ReportScreen({ navigation }: { navigation: any }) {
     const daysElapsed = isCurrentMonth ? Math.min(getDate(today), totalDays) : totalDays;
     const daysRemaining = isCurrentMonth ? totalDays - getDate(today) : 0;
 
-    // 今月の収入合計
+    // 今月の収入合計（支出側と同じ「N日時点」に揃える）。
+    // 当月は今日まで、過去月は月末まで。月全体で集計すると未来日付の収入
+    // （給料日が今日より後の給与など）が混入し、当日までの支出と非対称になって
+    // 収支残高を過大表示し、前月比（当日までのNET）との比較もちぐはぐになる。
     const curMonStart = format(startOfMonth(curDate), 'yyyy-MM-dd');
     const curMonEnd = format(endOfMonth(curDate), 'yyyy-MM-dd');
+    const asOfStr = isCurrentMonth ? format(today, 'yyyy-MM-dd') : curMonEnd;
     let totalIncome = 0;
     for (const tx of transactions) {
-      if (tx.transaction_date < curMonStart || tx.transaction_date > curMonEnd) continue;
+      if (tx.transaction_date < curMonStart || tx.transaction_date > asOfStr) continue;
       const cat = categories.find((c) => c.id === tx.category_id);
       if (cat?.type === 'income') totalIncome += tx.amount_cents;
     }

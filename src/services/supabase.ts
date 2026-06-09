@@ -11,11 +11,33 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 // ストール対策：通信が固まっても確実に reject させ、無限スピナーを防ぐ。
 // （iOS スタンドアロンで数時間放置後、期限切れトークンのリフレッシュ通信が
-//   ストールしても reject されず固まる事象への保険。10秒で AbortError にする）
-const TIMEOUT_MS = 10000;
+//   ストールしても reject されず固まる事象への保険。タイムアウトで AbortError にする）
+//
+// ただし auth/DB と同じ短いタイムアウトを Edge Function / Storage にも一律に掛けると、
+// レシートOCR（Claude Vision・画像送信）やアカウント削除（サーバ側の連鎖削除）など
+// 本来10秒を超える処理まで途中で中断してしまう。エンドポイント種別でタイムアウトを分ける。
+const TIMEOUT_MS = 10000; // auth / REST（DB）向けの短いタイムアウト
+const LONG_TIMEOUT_MS = 60000; // Edge Function / Storage 向けの長いタイムアウト
+
+function timeoutForUrl(input: RequestInfo | URL): number {
+  const url =
+    typeof input === 'string' ? input
+    : input instanceof URL ? input.href
+    : input.url;
+  // Edge Function（claude-proxy の OCR / delete-account）と Storage（画像アップロード）は長め
+  if (url.includes('/functions/v1/') || url.includes('/storage/v1/')) {
+    return LONG_TIMEOUT_MS;
+  }
+  return TIMEOUT_MS;
+}
+
 function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  // 呼び出し元が既に signal を渡している場合はそれを尊重し、二重に abort しない
+  if (init.signal) {
+    return fetch(input, init);
+  }
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), timeoutForUrl(input));
   return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 
