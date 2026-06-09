@@ -1,16 +1,17 @@
-import { useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, ActivityIndicator, Image, Share,
 } from 'react-native';
 import * as Linking from 'expo-linking';
+import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { useAuthStore } from '../stores/authStore';
 import { useTransactionStore } from '../stores/transactionStore';
 import { useTransactionFilter } from '../hooks/useActiveGroupId';
 import { getTransactionsByMonth, getCategories } from '../services/transactions';
-import { formatCurrency, formatDate, formatMonth, getMonthRange, prevMonth, nextMonth } from '../utils/format';
+import { formatCurrency, formatDate, formatDateFull, todayISO } from '../utils/format';
 import ScopeSelector from '../components/ScopeSelector';
 import CategoryIcon, { isImageIcon } from '../components/CategoryIcon';
 import { hasAizomeCategoryIcon } from '../components/AizomeCategoryIcons';
@@ -39,19 +40,21 @@ function arcPath(cx: number, cy: number, r: number, startDeg: number, endDeg: nu
 export default function HomeScreen({ navigation }: { navigation: any }) {
   const { user } = useAuthStore();
   const filter = useTransactionFilter();
-  const {
-    transactions, categories, currentMonth, isLoading,
-    setTransactions, setCategories, setCurrentMonth, setLoading,
-  } = useTransactionStore();
+  const { categories, setCategories } = useTransactionStore();
   const { groups } = useGroupStore();
+  // ホームはアプリ起動日（今日）の収支に統一。共有ストアの月データとは
+  // 切り離し、ローカル state で「今日」のぶんだけを保持する。
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setLoading] = useState(false);
+
+  const today = todayISO();
 
   const loadData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const { from, to } = getMonthRange(currentMonth);
       const [txs, cats] = await Promise.all([
-        getTransactionsByMonth(user.id, from, to, filter.showPersonal, filter.groupId),
+        getTransactionsByMonth(user.id, today, today, filter.showPersonal, filter.groupId),
         categories.length === 0 ? getCategories() : Promise.resolve(categories),
       ]);
       setTransactions(txs);
@@ -61,9 +64,10 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
     } finally {
       setLoading(false);
     }
-  }, [user, filter.showPersonal, filter.groupId, currentMonth]);
+  }, [user, filter.showPersonal, filter.groupId, today]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  // 画面フォーカス時に再読込（記入後の反映 + 日付が変わった場合の追従）
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
   const income = transactions
     .filter((t) => getCategoryType(t, categories) === 'income')
@@ -92,22 +96,16 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
       </View>
 
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        {/* 月切り替え */}
-        <View style={styles.monthRow}>
-          <TouchableOpacity onPress={() => setCurrentMonth(prevMonth(currentMonth))}>
-            <Text style={styles.arrow}>‹</Text>
-          </TouchableOpacity>
-          <Text style={styles.monthLabel}>{formatMonth(currentMonth)}</Text>
-          <TouchableOpacity onPress={() => setCurrentMonth(nextMonth(currentMonth))}>
-            <Text style={styles.arrow}>›</Text>
-          </TouchableOpacity>
+        {/* 今日の日付 */}
+        <View style={styles.dateRow}>
+          <Text style={styles.dateLabel}>{formatDateFull(new Date())}</Text>
         </View>
 
         {/* 収支サマリーカード（深藍 × 麻の葉） */}
         <View style={styles.heroCard}>
           <AsanohaBg opacity={0.5} />
           <View style={styles.heroContent}>
-            <Text style={styles.heroSubLabel}>今月の収支</Text>
+            <Text style={styles.heroSubLabel}>今日の収支</Text>
             <View style={styles.heroBalanceRow}>
               <Text style={styles.heroCurrency}>¥</Text>
               <Text style={[styles.heroBalance, { color: balance >= 0 ? AI.washi : AI.expense }]}>
@@ -312,13 +310,12 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingHorizontal: 16, paddingBottom: 32 },
 
-  // 月切り替え
-  monthRow: {
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
+  // 今日の日付
+  dateRow: {
+    justifyContent: 'center', alignItems: 'center',
     marginBottom: 12, marginTop: 16,
   },
-  arrow: { fontSize: 28, color: AI.brass, paddingHorizontal: 20 },
-  monthLabel: { fontSize: 18, fontWeight: 'bold', color: AI.indigo, letterSpacing: 1 },
+  dateLabel: { fontSize: 18, fontWeight: 'bold', color: AI.indigo, letterSpacing: 1 },
 
   // 藍染ヒーローカード
   heroCard: {

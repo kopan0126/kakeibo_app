@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
-  View, Text, FlatList, StyleSheet, ActivityIndicator,
+  View, Text, FlatList, StyleSheet, ActivityIndicator, Platform,
 } from 'react-native';
 import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
 
@@ -25,13 +25,17 @@ import { useViewStore } from '../stores/viewStore';
 import { useTransactionStore } from '../stores/transactionStore';
 import { getByMonth, getDailyTotals, getCategories } from '../services/transactions';
 import { getMemberProfiles, type MemberProfile } from '../services/family';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, formatDate } from '../utils/format';
 import ScopeSelector from '../components/ScopeSelector';
 import CategoryIcon, { isImageIcon } from '../components/CategoryIcon';
 import { hasAizomeCategoryIcon } from '../components/AizomeCategoryIcons';
 import MemberAvatar from '../components/MemberAvatar';
+import CalendarIcon from '../components/CalendarIcon';
 import { AI } from '../theme/aizome';
 import type { Transaction, Category } from '../types';
+
+// 和モダンの明朝体（見出し用）。システムフォントのみで追加読込不要。
+const serif = Platform.select({ ios: 'Hiragino Mincho ProN', android: 'serif', default: 'serif' });
 
 export default function CalendarScreen() {
   const { user } = useAuthStore();
@@ -119,6 +123,11 @@ export default function CalendarScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <CalendarIcon size={30} />
+        <Text style={styles.headerTitle}>暦</Text>
+      </View>
+
       <View style={styles.scopeWrap}>
         <ScopeSelector />
       </View>
@@ -212,7 +221,7 @@ export default function CalendarScreen() {
 
             {selectedDate && (
               <Text style={styles.listHeader}>
-                {parseInt(selectedDate.split('-')[1], 10)}月{parseInt(selectedDate.split('-')[2], 10)}日の取引
+                {formatDate(selectedDate)}の取引
               </Text>
             )}
           </>
@@ -277,7 +286,14 @@ function TxRow({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: AI.washi },
-  scopeWrap: { marginTop: 48 },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    marginTop: 56, marginBottom: 4,
+  },
+  headerTitle: {
+    fontFamily: serif, fontSize: 22, fontWeight: '700', color: AI.text, letterSpacing: 2,
+  },
+  scopeWrap: { marginTop: 16 },
   listContent: { paddingBottom: 40 },
   calendar: {
     borderRadius: 12, marginHorizontal: 12, marginBottom: 8,

@@ -1,14 +1,20 @@
 import { useState, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { parseReceiptImage } from '../services/receiptOcr';
 import { useAuthStore } from '../stores/authStore';
 import RewardedAdModal from '../components/RewardedAdModal';
+import CameraIcon from '../components/CameraIcon';
+import GalleryIcon from '../components/GalleryIcon';
+import MegaphoneIcon from '../components/MegaphoneIcon';
 import { AI } from '../theme/aizome';
+
+// 和モダンの明朝体（タイトル・タイル見出し用）。システムフォントのみで追加読込不要。
+const serif = Platform.select({ ios: 'Hiragino Mincho ProN', android: 'serif', default: 'serif' });
 
 type Props = {
   navigation: any;
@@ -153,17 +159,22 @@ export default function ReceiptScanScreen({ navigation }: Props) {
 
       {!isPremium && (
         <View style={styles.adNotice}>
-          <Text style={styles.adNoticeText}>📺 スキャン前に広告が表示されます</Text>
+          <MegaphoneIcon size={22} />
+          <Text style={styles.adNoticeText}>スキャン前に広告が表示されます</Text>
         </View>
       )}
 
       <View style={styles.buttonRow}>
-        <TouchableOpacity style={styles.bigBtn} onPress={handleCamera}>
-          <Text style={styles.bigBtnEmoji}>📷</Text>
+        <TouchableOpacity style={styles.bigBtn} onPress={handleCamera} activeOpacity={0.85}>
+          <View style={styles.bigBtnIcon}>
+            <CameraIcon size={64} />
+          </View>
           <Text style={styles.bigBtnLabel}>カメラで{'\n'}撮影</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.bigBtn} onPress={handleGallery}>
-          <Text style={styles.bigBtnEmoji}>🖼</Text>
+        <TouchableOpacity style={styles.bigBtn} onPress={handleGallery} activeOpacity={0.85}>
+          <View style={styles.bigBtnIcon}>
+            <GalleryIcon size={64} />
+          </View>
           <Text style={styles.bigBtnLabel}>ギャラリ{'\n'}から選択</Text>
         </TouchableOpacity>
       </View>
@@ -176,22 +187,28 @@ export default function ReceiptScanScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: AI.washi, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  title: { fontSize: 20, fontWeight: 'bold', color: AI.text, marginBottom: 32, letterSpacing: 1 },
-  buttonRow: { flexDirection: 'row', gap: 16, marginBottom: 24 },
+  container: { flex: 1, backgroundColor: AI.washi, paddingHorizontal: 28, paddingTop: 96, paddingBottom: 40 },
+  title: {
+    fontFamily: serif, fontSize: 24, fontWeight: '700', color: AI.text,
+    textAlign: 'center', letterSpacing: 0.5, marginBottom: 36,
+  },
+  // 広告通知ピル：メガホン線画 + テキスト。cream-2 地に rule 罫線（影なし）
+  adNotice: {
+    alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: AI.washi2, borderRadius: 18, paddingHorizontal: 18, paddingVertical: 12,
+    borderWidth: 1, borderColor: AI.rule, marginBottom: 22,
+  },
+  adNoticeText: { fontSize: 13, color: AI.textSoft },
+  // 2タイル：正方形、radius 22、cream-2 地に rule 罫線
+  buttonRow: { flexDirection: 'row', gap: 14 },
   bigBtn: {
-    width: 140, height: 140, backgroundColor: AI.washi2, borderRadius: 20,
-    justifyContent: 'center', alignItems: 'center',
+    flex: 1, aspectRatio: 1, backgroundColor: AI.washi2, borderRadius: 22,
+    justifyContent: 'center', alignItems: 'center', gap: 18, padding: 18,
     borderWidth: 1, borderColor: AI.rule,
   },
-  bigBtnEmoji: { fontSize: 40, marginBottom: 8 },
-  bigBtnLabel: { fontSize: 14, fontWeight: '600', color: AI.text, textAlign: 'center' },
-  hint: { fontSize: 13, color: AI.textSoft, textAlign: 'center' },
-  adNotice: {
-    backgroundColor: AI.washi2, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8,
-    borderWidth: 1, borderColor: AI.rule, marginBottom: 20,
-  },
-  adNoticeText: { fontSize: 12, color: AI.textSoft },
+  bigBtnIcon: { height: 52, justifyContent: 'center' },
+  bigBtnLabel: { fontFamily: serif, fontSize: 16, fontWeight: '700', lineHeight: 22, color: AI.text, textAlign: 'center' },
+  hint: { fontSize: 12, color: AI.textSoft, textAlign: 'center', letterSpacing: 0.5, marginTop: 22 },
   overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: AI.indigo },
   overlayText: { fontSize: 18, fontWeight: 'bold', color: AI.brass, marginTop: 16 },
   cancelBtn: { marginTop: 24, paddingVertical: 10, paddingHorizontal: 24 },

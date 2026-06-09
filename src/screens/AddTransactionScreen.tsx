@@ -18,6 +18,8 @@ import {
   genLinkId, scopeToGroupId, txMatchesScope, askLinkedChoice, type ScopeKey,
 } from '../utils/transactionScope';
 import CategoryIcon, { isImageIcon } from '../components/CategoryIcon';
+import CameraIcon from '../components/CameraIcon';
+import GearIcon from '../components/GearIcon';
 import { hasAizomeCategoryIcon } from '../components/AizomeCategoryIcons';
 import { hiddenCategoryIdSet } from '../utils/categoryVisibility';
 import { AI } from '../theme/aizome';
@@ -337,7 +339,8 @@ export default function AddTransactionScreen({ navigation, route }: { navigation
       {/* スキャンで入力（テンキーとカテゴリの間） */}
       {!existingTx && (
         <TouchableOpacity style={styles.scanBtn} onPress={() => navigation.navigate('ReceiptScan')}>
-          <Text style={styles.scanBtnText}>📷 レシート・明細をスキャンして自動入力</Text>
+          <CameraIcon size={26} />
+          <Text style={styles.scanBtnText}>レシート・明細をスキャンして自動入力</Text>
         </TouchableOpacity>
       )}
 
@@ -348,7 +351,8 @@ export default function AddTransactionScreen({ navigation, route }: { navigation
           style={styles.manageCatBtn}
           onPress={() => navigation.navigate('CategoryManage')}
         >
-          <Text style={styles.manageCatBtnText}>⚙️ カテゴリ管理</Text>
+          <GearIcon size={15} />
+          <Text style={styles.manageCatBtnText}>カテゴリ管理</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.categoryGrid}>
@@ -480,6 +484,7 @@ const styles = StyleSheet.create({
   labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   label: { fontSize: 11, fontWeight: '600', color: AI.textSoft, letterSpacing: 3 },
   manageCatBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: AI.washi2, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4,
     borderWidth: 1, borderColor: AI.rule,
   },
@@ -505,8 +510,8 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: AI.rule, color: AI.text,
   },
   scanBtn: {
-    backgroundColor: AI.washi2, borderRadius: 10, padding: 14, marginBottom: 12,
-    borderWidth: 1, borderColor: AI.rule, alignItems: 'center',
+    flexDirection: 'row', gap: 8, backgroundColor: AI.washi2, borderRadius: 10, padding: 14, marginBottom: 12,
+    borderWidth: 1, borderColor: AI.rule, alignItems: 'center', justifyContent: 'center',
   },
   scanBtnText: { color: AI.indigo, fontSize: 14, fontWeight: '600' },
   scopeChips: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginBottom: 16 },

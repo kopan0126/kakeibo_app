@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useAuthStore } from '../stores/authStore';
 import { useTransactionStore } from '../stores/transactionStore';
+import { useGroupStore } from '../stores/groupStore';
 import { useTransactionFilter } from '../hooks/useActiveGroupId';
 import { deleteTransaction, deleteTransactionsByLink, getTransactionsByMonth } from '../services/transactions';
 import { getMemberProfiles, type MemberProfile } from '../services/family';
@@ -23,6 +24,7 @@ import type { Transaction, Category } from '../types';
 
 export default function TransactionListScreen({ navigation }: { navigation: any }) {
   const { user } = useAuthStore();
+  const { groups } = useGroupStore();
   const filter = useTransactionFilter();
   const {
     transactions, categories, currentMonth, isLoading,
@@ -63,13 +65,17 @@ export default function TransactionListScreen({ navigation }: { navigation: any 
     const cat = categories.find((c) => c.id === tx.category_id);
     const summary = `${cat?.name ?? ''} ${formatCurrency(tx.amount_cents)}`;
 
-    // 個人＋グループにまたがる記録は「この記録だけ / 両方」を選ばせる
+    // 個人＋グループにまたがる記録は「ここだけ / すべて」を選ばせる。
+    // 表示中スコープの名前（グループ名 or ユーザ名）でラベルを出す
     if (tx.link_id) {
+      const scopeName = tx.group_id
+        ? (groups.find((g) => g.id === tx.group_id)?.name ?? 'このグループ')
+        : (user?.display_name || '個人');
       const choice = await askLinkedChoice({
         title: '削除する範囲',
         message: `${summary}\nこの記録は個人とグループの両方に登録されています。`,
-        oneLabel: 'この記録だけ削除',
-        bothLabel: '両方を削除',
+        oneLabel: `${scopeName}で削除`,
+        bothLabel: 'すべてのグループで削除',
         destructive: true,
       });
       if (choice === 'cancel') return;

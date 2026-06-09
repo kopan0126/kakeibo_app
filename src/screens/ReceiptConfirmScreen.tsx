@@ -5,14 +5,13 @@ import {
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
-import { ja } from 'date-fns/locale';
 import { useAuthStore } from '../stores/authStore';
 import { useTransactionStore } from '../stores/transactionStore';
 import { useGroupStore } from '../stores/groupStore';
 import { useViewStore } from '../stores/viewStore';
 import { createTransactionBatch, getCategories } from '../services/transactions';
 import { findCategoryBySuggestion } from '../utils/categoryMapping';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, formatDateFull } from '../utils/format';
 import {
   genLinkId, scopeToGroupId, txMatchesScope, type ScopeKey,
 } from '../utils/transactionScope';
@@ -142,7 +141,7 @@ export default function ReceiptConfirmScreen({ route, navigation }: any) {
   }
 
   const filteredCategories = categories.filter((c) => c.type === type);
-  const dateLabel = format(selectedDate, 'yyyy年M月d日(E)', { locale: ja });
+  const dateLabel = formatDateFull(selectedDate);
 
   const bannerMap: Record<string, { text: string; bg: string; color: string }> = {
     high: { text: '✅ 正確に読み取れました', bg: '#E8F5E9', color: '#2E7D32' },

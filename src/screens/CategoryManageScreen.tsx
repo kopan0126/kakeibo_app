@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, Modal, TextInput, Alert, ActivityIndicator,
-  Dimensions,
+  Dimensions, Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -17,31 +17,29 @@ import {
 } from '../services/transactions';
 import CategoryIcon, { isImageIcon } from '../components/CategoryIcon';
 import { hasAizomeCategoryIcon } from '../components/AizomeCategoryIcons';
+import CameraIcon from '../components/CameraIcon';
+import { BillStackIcon, PouchIcon, TargetIcon } from '../components/CategoryFormIcons';
 import { hiddenCategoryIdSet } from '../utils/categoryVisibility';
 import { AI } from '../theme/aizome';
 import type { Category, CategoryType } from '../types';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
-// 選択可能な絵文字一覧
-const EMOJIS = [
-  '🍜','🍱','🍕','🍔','🍺','🍰','☕','🥤','🍣','🥗',
-  '🍎','🥕','🛒','🏠','🏡','💡','🔧','🛁','🪑','🛋️',
-  '🚗','🚌','🚇','✈️','⛽','🚲','🚕','🛵','🚂','🚁',
-  '👕','👟','💄','💅','💇','🧴','👔','👗','👒','🧢',
-  '💊','🏥','😷','🩺','🏃','🧘','🏋️','💪','🧠','❤️',
-  '🎮','🎬','🎵','🎸','⚽','📚','🎯','🎉','🎁','🎊',
-  '🐾','🐕','🐱','🌸','🌿','🌺','🌍','🏖️','⛷️','🎣',
-  '💰','💴','📈','💼','🏦','💎','🌟','🏆','⭐','🎓',
-  '💻','📱','🖥️','📷','⌚','🎒','🔑','🏷️','📦','🎀',
+// 和モダンの明朝体（見出し・ボタン・入力用）。システムフォントのみで追加読込不要。
+const serif = Platform.select({ ios: 'Hiragino Mincho ProN', android: 'serif', default: 'serif' });
+
+// 写真未選択時のプレースホルダ（保存時もこの値を icon に格納し、プレビューでは的の線画を描く）
+const DEFAULT_ICON = '🎯';
+const DEFAULT_COLOR = '#2B4A7C'; // 藍
+
+// 選択可能なカラー一覧 — 和の伝統色16色（紺＋真鍮の世界観に調和）
+const COLORS = [
+  '#B4322A', '#A8395B', '#6B4B82', '#2B4A7C', '#4A8FA8', '#5E9B96', '#3F7C5C', '#2F6A3B',
+  '#82A050', '#D4A537', '#D67838', '#C2543C', '#7A5A40', '#5E7280', '#9A968A', '#15243F',
 ];
 
-// 選択可能なカラー一覧
-const COLORS = [
-  '#F44336','#E91E63','#9C27B0','#3F51B5','#2196F3',
-  '#00BCD4','#009688','#4CAF50','#8BC34A','#FFC107',
-  '#FF9800','#FF5722','#795548','#607D8B','#9E9E9E',
-];
+// 8列グリッドのスウォッチ寸法（モーダル左右パディング20 + 列間ギャップ10で算出）
+const SWATCH_SIZE = Math.floor((SCREEN_WIDTH - 40 - 7 * 10) / 8);
 
 export default function CategoryManageScreen() {
   const { user, setUser } = useAuthStore();
@@ -57,8 +55,8 @@ export default function CategoryManageScreen() {
 
   // モーダルフォーム状態
   const [formName, setFormName] = useState('');
-  const [formIcon, setFormIcon] = useState('🎯');
-  const [formColor, setFormColor] = useState('#4CAF50');
+  const [formIcon, setFormIcon] = useState(DEFAULT_ICON);
+  const [formColor, setFormColor] = useState(DEFAULT_COLOR);
   const [formType, setFormType] = useState<CategoryType>('expense');
 
   const refreshCategories = useCallback(async () => {
@@ -106,8 +104,8 @@ export default function CategoryManageScreen() {
   function openCreate() {
     setEditTarget(null);
     setFormName('');
-    setFormIcon('🎯');
-    setFormColor('#4CAF50');
+    setFormIcon(DEFAULT_ICON);
+    setFormColor(DEFAULT_COLOR);
     setFormType(activeType);
     setIsCreating(true);
     setShowModal(true);
@@ -332,7 +330,7 @@ export default function CategoryManageScreen() {
                   <ActivityIndicator color={AI.indigo} size="small" />
                 ) : (
                   <>
-                    <Text style={styles.photoPickerBtnIcon}>📷</Text>
+                    <CameraIcon size={26} />
                     <Text style={styles.photoPickerBtnText}>フォトライブラリから選ぶ</Text>
                   </>
                 )}
@@ -345,35 +343,12 @@ export default function CategoryManageScreen() {
                   <Text style={styles.selectedPhotoLabel}>選択中の写真</Text>
                   <TouchableOpacity
                     style={styles.clearPhotoBtn}
-                    onPress={() => setFormIcon('🎯')}
+                    onPress={() => setFormIcon(DEFAULT_ICON)}
                   >
                     <Text style={styles.clearPhotoBtnText}>✕ 解除</Text>
                   </TouchableOpacity>
                 </View>
               )}
-
-              {/* 区切り */}
-              <View style={styles.dividerRow}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>または絵文字から選ぶ</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              {/* 絵文字グリッド */}
-              <View style={styles.emojiGrid}>
-                {EMOJIS.map((emoji) => (
-                  <TouchableOpacity
-                    key={emoji}
-                    style={[
-                      styles.emojiCell,
-                      formIcon === emoji && styles.emojiCellSelected,
-                    ]}
-                    onPress={() => setFormIcon(emoji)}
-                  >
-                    <Text style={styles.emojiText}>{emoji}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
 
               {/* ── 名前入力 ── */}
               <Text style={styles.formLabel}>カテゴリ名</Text>
@@ -398,6 +373,7 @@ export default function CategoryManageScreen() {
                       formColor === color && styles.colorDotSelected,
                     ]}
                     onPress={() => setFormColor(color)}
+                    activeOpacity={0.8}
                   />
                 ))}
               </View>
@@ -407,25 +383,30 @@ export default function CategoryManageScreen() {
                 <>
                   <Text style={styles.formLabel}>種別</Text>
                   <View style={styles.typeRow}>
-                    {(['expense', 'income'] as CategoryType[]).map((t) => (
-                      <TouchableOpacity
-                        key={t}
-                        style={[
-                          styles.typeBtn,
-                          formType === t && {
-                            backgroundColor: t === 'expense' ? AI.expense : AI.income,
-                          },
-                        ]}
-                        onPress={() => setFormType(t)}
-                      >
-                        <Text style={[
-                          styles.typeBtnText,
-                          formType === t && styles.typeBtnTextActive,
-                        ]}>
-                          {t === 'expense' ? '💸 支出' : '💰 収入'}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                    {(['expense', 'income'] as CategoryType[]).map((t) => {
+                      const active = formType === t;
+                      return (
+                        <TouchableOpacity
+                          key={t}
+                          style={[styles.typeBtn, active && styles.typeBtnActive]}
+                          onPress={() => setFormType(t)}
+                          activeOpacity={0.85}
+                        >
+                          {t === 'expense' ? (
+                            <BillStackIcon size={52} />
+                          ) : (
+                            <PouchIcon
+                              size={52}
+                              inkColor={active ? AI.washi : AI.indigo}
+                              brassColor={active ? AI.brassSoft : AI.brass}
+                            />
+                          )}
+                          <Text style={[styles.typeBtnText, active && styles.typeBtnTextActive]}>
+                            {t === 'expense' ? '支出' : '収入'}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 </>
               )}
@@ -433,11 +414,14 @@ export default function CategoryManageScreen() {
               {/* ── プレビュー ── */}
               <Text style={styles.formLabel}>プレビュー</Text>
               <View style={styles.previewRow}>
-                <View style={[
-                  styles.previewIcon,
-                  { backgroundColor: isImageIcon(formIcon) ? '#F0F0F0' : formColor + '22' },
-                ]}>
-                  <CategoryIcon icon={formIcon} size={30} />
+                <View style={styles.previewIcon}>
+                  {/* カラーの淡い色被せ（和紙クリップ地に45%で重ねる） */}
+                  <View style={[styles.previewTint, { backgroundColor: formColor }]} />
+                  {isImageIcon(formIcon) ? (
+                    <CategoryIcon icon={formIcon} size={42} />
+                  ) : (
+                    <TargetIcon size={42} />
+                  )}
                 </View>
                 <Text style={[styles.previewName, { color: formColor }]}>
                   {formName || 'カテゴリ名'}
@@ -555,20 +539,22 @@ const styles = StyleSheet.create({
     maxHeight: '92%',
   },
   modalHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: AI.rule,
-    borderRadius: 2,
+    width: 44,
+    height: 5,
+    backgroundColor: AI.brass,
+    borderRadius: 3,
     alignSelf: 'center',
     marginTop: 12,
     marginBottom: 16,
   },
   modalTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
+    fontFamily: serif,
+    fontSize: 21,
+    fontWeight: '700',
     color: AI.text,
-    marginBottom: 16,
+    marginBottom: 20,
     textAlign: 'center',
+    letterSpacing: 1.2,
   },
   formScroll: { maxHeight: 500 },
   formLabel: {
@@ -585,16 +571,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 12,
     backgroundColor: AI.washi2,
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: 14,
+    paddingVertical: 18,
     marginBottom: 12,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: AI.indigo,
   },
-  photoPickerBtnIcon: { fontSize: 20 },
-  photoPickerBtnText: { color: AI.indigo, fontWeight: 'bold', fontSize: 14 },
+  photoPickerBtnText: { fontFamily: serif, color: AI.indigo, fontWeight: '700', fontSize: 15 },
 
   // 選択中の写真プレビュー
   selectedPhotoRow: {
@@ -617,39 +602,13 @@ const styles = StyleSheet.create({
   },
   clearPhotoBtnText: { color: AI.danger, fontSize: 12, fontWeight: '600' },
 
-  // 区切り
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
-  },
-  dividerLine: { flex: 1, height: 1, backgroundColor: AI.rule },
-  dividerText: { fontSize: 11, color: AI.textSoft },
-
-  // 絵文字グリッド
-  emojiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 16 },
-  emojiCell: {
-    width: 44,
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 10,
-    backgroundColor: AI.washi2,
-  },
-  emojiCellSelected: {
-    backgroundColor: AI.washi2,
-    borderWidth: 2,
-    borderColor: AI.indigo,
-  },
-  emojiText: { fontSize: 24 },
-
   // 名前入力
   formInput: {
     backgroundColor: AI.washi2,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    borderRadius: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    fontFamily: serif,
     fontSize: 15,
     borderWidth: 1,
     borderColor: AI.rule,
@@ -657,50 +616,64 @@ const styles = StyleSheet.create({
     color: AI.text,
   },
 
-  // カラー
+  // カラー — 8列グリッドの円形スウォッチ
   colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
-  colorDot: { width: 32, height: 32, borderRadius: 16 },
+  colorDot: {
+    width: SWATCH_SIZE,
+    height: SWATCH_SIZE,
+    borderRadius: SWATCH_SIZE / 2,
+    borderWidth: 1.5,
+    borderColor: 'rgba(21,36,63,0.18)',
+  },
   colorDotSelected: {
-    borderWidth: 3,
-    borderColor: AI.text,
-    transform: [{ scale: 1.15 }],
+    borderWidth: 2.5,
+    borderColor: AI.indigo,
+    transform: [{ scale: 1.12 }],
   },
 
-  // 種別
-  typeRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  // 種別 — 線画アイコン＋ラベル、選択時は朱地
+  typeRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
   typeBtn: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 14,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     backgroundColor: AI.washi2,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: AI.rule,
   },
-  typeBtnText: { fontSize: 14, fontWeight: '600', color: AI.textSoft },
-  typeBtnTextActive: { color: '#fff' },
+  typeBtnActive: { backgroundColor: AI.expense, borderColor: AI.expense },
+  typeBtnText: { fontFamily: serif, fontSize: 15, fontWeight: '700', color: AI.text },
+  typeBtnTextActive: { color: AI.washi },
 
   // プレビュー
   previewRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: AI.washi2,
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: 14,
+    padding: 18,
     marginBottom: 16,
-    gap: 12,
+    gap: 14,
     borderWidth: 1,
     borderColor: AI.rule,
   },
   previewIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 10,
+    width: 62,
+    height: 62,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+    backgroundColor: AI.chip,
+    borderWidth: 1,
+    borderColor: 'rgba(201,165,92,0.5)',
   },
-  previewName: { fontSize: 17, fontWeight: 'bold' },
+  previewTint: { ...StyleSheet.absoluteFillObject, opacity: 0.45 },
+  previewName: { fontFamily: serif, fontSize: 17, fontWeight: '700' },
 
   // 削除ボタン
   deleteBtn: {
@@ -730,7 +703,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: AI.rule,
   },
-  cancelBtnText: { fontSize: 15, fontWeight: '600', color: AI.textSoft },
+  cancelBtnText: { fontFamily: serif, fontSize: 15, fontWeight: '700', color: AI.text, letterSpacing: 1 },
   saveBtn: {
     flex: 2,
     paddingVertical: 14,
@@ -738,5 +711,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: AI.indigo,
   },
-  saveBtnText: { fontSize: 15, fontWeight: 'bold', color: AI.brass },
+  saveBtnText: { fontFamily: serif, fontSize: 15, fontWeight: '700', color: AI.brass, letterSpacing: 1 },
 });

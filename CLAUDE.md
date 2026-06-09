@@ -121,6 +121,7 @@ Claudeは作業中に遭遇したバグ・エラーとその解決過程を「�
 - グループ表示で相手の記入者アイコンだけ「?」になる → 相手の users 行が取れていない（users_select_same_group RLS の適用漏れ or 相手がプロフィール未設定）。対策: RLSをバイパスする SECURITY DEFINER 関数 get_member_profiles(uuid[]) で同グループメンバー＋自分に限定して取得（0014）。関数未適用でも壊れないよう client は RPC 失敗時に直接クエリへフォールバック。名前・写真とも無い場合のフォールバックは「?」ではなく人型アイコン👤
 - iOSで入力欄がキーボードに隠れて見えない → 素のScrollViewはキーボードを自動回避しない。ScrollViewに `automaticallyAdjustKeyboardInsets`（iOS向け・Androidは無害、RN0.71+）を付けるか、KeyboardAvoidingViewで包む。Androidは app.json の softwareKeyboardLayoutMode 既定（resize）で概ねOK。新規に入力欄を追加する画面では必ずどちらかを適用する
 - 絵文字が白黒の線画（テキスト表示）で「変な」見た目になる → そのコードポイントが Emoji_Presentation=No（例: 👁 EYE U+1F441, ❤ U+2764, ✏ U+270F 等）。末尾に異体字セレクタ U+FE0F（`️`）を付けてカラー絵文字を強制する（`'👁'`→`'👁️'`）
+- react-native-svg で `<Svg width="100%" viewBox=...>` だけ（height省略）だと高さが 0 に潰れてグラフが描画されない → 親Viewの `onLayout` で実幅を測り Svg に width/height を数値で渡す。固定座標系なら viewBox はそのまま `height={実幅*H/W}`、可変なら width=実幅・viewBox幅も実幅にして1:1。ReportScreen の折れ線・棒グラフ両方がこれで非表示になっていた
 - レシートOCRで「お預かり金額」を合計と誤判定 → 否定指示だけでは不十分。プロンプトに具体例（「合計1,580/お預かり2,000/お釣り420 → totalは1580」）を入れ、「金額の隣のラベルを読み『合計』ラベルの額だけ採用」と明示すると確実に改善。「最終合計」という表現は最下部のお預かり/お釣りを拾う誘因になるので使わない。あわせて未使用だった rawText（画像テキスト全文）を出力JSONから削除し出力トークンを節約（精度向上とコスト削減を同時に達成）
 
 ## 認証フロー
