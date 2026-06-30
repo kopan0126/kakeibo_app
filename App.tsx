@@ -14,11 +14,11 @@ import { joinGroup, getMyGroups } from './src/services/family';
 import { requestPermissions } from './src/services/notification';
 import { initializePurchases, checkPremiumStatus } from './src/services/purchases';
 import { trackScreen } from './src/services/analytics';
+import { AI } from './src/theme/aizome';
 import AuthScreen from './src/screens/AuthScreen';
 import MainNavigator from './src/screens/MainNavigator';
 import type { User } from '@supabase/supabase-js';
 import type { UserProfile } from './src/types';
-import * as AI from './src/theme/aizome';
 
 // プロフィール取得に失敗してもセッションが有効ならアプリへ進めるための最小プロフィール
 function fallbackProfile(authUser: User): UserProfile {

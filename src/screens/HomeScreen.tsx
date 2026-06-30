@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, ActivityIndicator, Image, Share,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import { useFocusEffect } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -48,6 +49,25 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
   const [isLoading, setLoading] = useState(false);
 
   const today = todayISO();
+
+  // ゲストバナー（匿名ユーザー向け）：email 未登録 = ゲストユーザー
+  const BANNER_DISMISS_KEY = 'guestBannerDismissedAt';
+  const BANNER_COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000; // 30日
+
+  const [showGuestBanner, setShowGuestBanner] = useState(false);
+
+  useEffect(() => {
+    if (!user || user.email) { setShowGuestBanner(false); return; }
+    AsyncStorage.getItem(BANNER_DISMISS_KEY).then((val) => {
+      if (!val) { setShowGuestBanner(true); return; }
+      if (Date.now() - parseInt(val, 10) > BANNER_COOLDOWN_MS) setShowGuestBanner(true);
+    });
+  }, [user?.id, user?.email]);
+
+  function dismissGuestBanner() {
+    AsyncStorage.setItem(BANNER_DISMISS_KEY, String(Date.now()));
+    setShowGuestBanner(false);
+  }
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -100,6 +120,27 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
         <View style={styles.dateRow}>
           <Text style={styles.dateLabel}>{formatDateFull(new Date())}</Text>
         </View>
+
+        {/* ゲスト登録促進バナー */}
+        {showGuestBanner && (
+          <View style={styles.guestBanner}>
+            <View style={styles.guestBannerBody}>
+              <Text style={styles.guestBannerTitle}>ゲストとしてご利用中</Text>
+              <Text style={styles.guestBannerDesc}>
+                アプリを削除するとデータが失われます。メールアドレスを登録するとデータを安全に保護できます。
+              </Text>
+              <TouchableOpacity
+                style={styles.guestBannerBtn}
+                onPress={() => navigation.navigate('Profile')}
+              >
+                <Text style={styles.guestBannerBtnText}>メールアドレスを登録して保護</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity style={styles.guestBannerClose} onPress={dismissGuestBanner}>
+              <Text style={styles.guestBannerCloseText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* 収支サマリーカード（深藍 × 麻の葉） */}
         <View style={styles.heroCard}>
@@ -399,6 +440,52 @@ const styles = StyleSheet.create({
   rankDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
   rankName: { flex: 1, fontSize: 12, color: AI.text },
   rankAmount: { fontSize: 12, fontWeight: '600', color: AI.text },
+
+  // ゲストバナー
+  guestBanner: {
+    backgroundColor: AI.washi2,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: AI.brass,
+    padding: 14,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  guestBannerBody: { flex: 1 },
+  guestBannerTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: AI.brass,
+    letterSpacing: 2,
+    marginBottom: 6,
+  },
+  guestBannerDesc: {
+    fontSize: 12,
+    color: AI.text,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  guestBannerBtn: {
+    backgroundColor: AI.indigo,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+  },
+  guestBannerBtnText: {
+    color: AI.brass,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  guestBannerClose: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  guestBannerCloseText: {
+    color: AI.textSoft,
+    fontSize: 14,
+  },
 
   // 取引行
   txRow: {
