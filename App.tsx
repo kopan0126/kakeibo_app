@@ -16,6 +16,21 @@ import { initializePurchases, checkPremiumStatus } from './src/services/purchase
 import { trackScreen } from './src/services/analytics';
 import AuthScreen from './src/screens/AuthScreen';
 import MainNavigator from './src/screens/MainNavigator';
+import type { User } from '@supabase/supabase-js';
+import type { UserProfile } from './src/types';
+import * as AI from './src/theme/aizome';
+
+// プロフィール取得に失敗してもセッションが有効ならアプリへ進めるための最小プロフィール
+function fallbackProfile(authUser: User): UserProfile {
+  return {
+    id: authUser.id,
+    email: authUser.email ?? '',
+    display_name: '',
+    avatar_url: null,
+    hidden_category_ids: [],
+    created_at: authUser.created_at,
+  };
+}
 
 function extractInviteCode(url: string): string | null {
   try {
@@ -108,14 +123,19 @@ export default function App() {
           if (profile) {
             setUser(profile);
           } else if (!useAuthStore.getState().user) {
-            // プロフィールが取れなかった場合、既存ユーザーは維持する（一時的な通信エラー対策）。
-            // まだユーザーがいない状態（初回起動など）のみ null にしてログイン画面へ。
-            setUser(null);
+            // users 行は 0010 のトリガーで必ず作成されるため、有効なセッションが
+            // あるのに profile が取れないのはほぼ通信エラー。ここで null のまま
+            // AuthScreen に落とすと「登録なしで始める」で新規匿名アカウントが
+            // 作られ、既存アカウントのデータが永久に孤立する。セッション由来の
+            // 最小プロフィールでアプリへ進め、表示名等は次回取得時に補完する。
+            setUser(fallbackProfile(session.user));
           }
         } catch (e) {
-          // プロフィール取得失敗（通信エラー等）でもローディングで固まらないようにする。
-          // setUser は呼ばず、既存の null 初期値のままログイン画面へフォールバックさせる
+          // プロフィール取得失敗（通信エラー等）でもローディングで固まらないようにする
           console.error('getCurrentUser failed:', e);
+          if (!useAuthStore.getState().user) {
+            setUser(fallbackProfile(session.user));
+          }
         } finally {
           setLoading(false);
         }
@@ -187,7 +207,7 @@ export default function App() {
   if (isLoading) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#C9A55C" />
+        <ActivityIndicator size="large" color={AI.brass} />
       </View>
     );
   }
@@ -233,6 +253,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F1E8D3',
+    backgroundColor: AI.washi,
   },
 });
