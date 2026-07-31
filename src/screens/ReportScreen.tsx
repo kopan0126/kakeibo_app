@@ -7,7 +7,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import Svg, { Path, Line, Rect, Text as SvgText } from 'react-native-svg';
 import {
   subMonths, subWeeks, addDays, format, startOfMonth, endOfMonth,
-  getDaysInMonth, startOfWeek, endOfWeek,
+  getDaysInMonth, startOfWeek, endOfWeek, max as maxDate,
   parseISO, getDate, getDay, getYear, getMonth,
 } from 'date-fns';
 
@@ -160,9 +160,20 @@ export default function ReportScreen({ navigation }: { navigation: any }) {
     if (!user || categories.length === 0) return;
     setIsLoading(true);
     try {
-      // 折れ線（前月比）と棒グラフ（月単位=直近6ヶ月）の両方を賄うため過去6ヶ月分を読み込む
+      // 折れ線（前月比）と棒グラフ（月単位=直近6ヶ月）の両方を賄うため過去6ヶ月分を読み込む。
+      // 上限は月末ちょうどではなく「月末を含む週の末尾」と「今日を含む週の末尾」の
+      // 遅い方まで広げる。日/週バーは月末アンカーの週が翌月にはみ出し、カテゴリ分析の
+      // 「今週」は過去月表示中も今日基準の週を見るため、月末で切ると実データが
+      // あるのに ¥0／データなし表示になる
+      const monthEnd = endOfMonth(parseISO(currentMonth));
       const from = format(startOfMonth(subMonths(parseISO(currentMonth), 5)), 'yyyy-MM-dd');
-      const to = format(endOfMonth(parseISO(currentMonth)), 'yyyy-MM-dd');
+      const to = format(
+        maxDate([
+          endOfWeek(monthEnd, { weekStartsOn: 1 }),
+          endOfWeek(new Date(), { weekStartsOn: 1 }),
+        ]),
+        'yyyy-MM-dd',
+      );
       const showPersonal = selectedScope === 'personal';
       const groupId = selectedScope !== 'personal' ? selectedScope : null;
       const txs = await getTransactionsByMonth(user.id, from, to, showPersonal, groupId);
@@ -266,7 +277,9 @@ export default function ReportScreen({ navigation }: { navigation: any }) {
     const prevDailyNet = buildDailyNet(transactions, categories, prevYear, prevMon);
     acc = 0;
     const prevNetCum = prevDailyNet.map((v) => (acc += v));
-    const prevNetAtSame = prevNetCum[daysElapsed - 1] ?? 0;
+    // 前月が当月より短い場合（例: 3月31日 vs 2月28日）はインデックスが範囲外に
+    // なるため前月末日の値にクランプする。?? 0 のままだと「前月比 = 当月全額」になる
+    const prevNetAtSame = prevNetCum[Math.min(daysElapsed, prevNetCum.length) - 1] ?? 0;
 
     const netBalance = totalIncome - totalExp;            // 今月の収支（黒字+/赤字−）
     const netDiff = netBalance - prevNetAtSame;           // 前月同日比

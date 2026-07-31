@@ -41,8 +41,12 @@ export async function checkPremiumStatus(): Promise<boolean> {
   return customerInfo.entitlements.active[ENTITLEMENT_ID] !== undefined;
 }
 
+// Expo Go ではネイティブモジュールが無く、実キーでも configure されないまま
+// Purchases.* を呼ぶと意味不明なネイティブエラーになるため、ここでも必ず弾く
+const isUnavailable = isExpoGo || isPlaceholderKey;
+
 export async function purchaseMonthly(): Promise<boolean> {
-  if (isPlaceholderKey) throw new Error('課金は現在この環境では利用できません。');
+  if (isUnavailable) throw new Error('課金は現在この環境では利用できません。');
   const offerings = await Purchases.getOfferings();
   const pkg = offerings.current?.monthly;
   if (!pkg) throw new Error('月額プランが見つかりません。しばらくしてから再試行してください。');
@@ -51,14 +55,25 @@ export async function purchaseMonthly(): Promise<boolean> {
 }
 
 export async function restorePurchases(): Promise<boolean> {
-  if (isPlaceholderKey) throw new Error('課金は現在この環境では利用できません。');
+  if (isUnavailable) throw new Error('課金は現在この環境では利用できません。');
   const customerInfo = await Purchases.restorePurchases();
   return customerInfo.entitlements.active[ENTITLEMENT_ID] !== undefined;
 }
 
 export async function getSubscriptionExpiry(): Promise<string | null> {
-  if (isPlaceholderKey) return null;
+  if (isUnavailable) return null;
   const customerInfo = await Purchases.getCustomerInfo();
   const entitlement = customerInfo.entitlements.active[ENTITLEMENT_ID];
   return entitlement?.expirationDate ?? null;
+}
+
+/** ストア側で設定された月額価格の表示文字列（例: "¥480"）。取得できない環境では null */
+export async function getMonthlyPriceString(): Promise<string | null> {
+  if (isUnavailable) return null;
+  try {
+    const offerings = await Purchases.getOfferings();
+    return offerings.current?.monthly?.product.priceString ?? null;
+  } catch {
+    return null;
+  }
 }

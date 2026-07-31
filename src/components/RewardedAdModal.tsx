@@ -1,22 +1,36 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  Modal, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator,
+  Modal, View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform,
 } from 'react-native';
 import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
 import { AI } from '../theme/aizome';
 
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
 
-// 本番用 AdMob リワード広告ユニットID（EAS Build後に差し替え）
-// import { RewardedAd, RewardedAdEventType, TestIds } from 'react-native-google-mobile-ads';
-// const REWARDED_AD_UNIT_ID = Platform.select({
-//   ios: 'ca-app-pub-1205763421067066/2949276746',
-//   android: 'ca-app-pub-1205763421067066/2419472328',
-// }) ?? TestIds.REWARDED;
+// 本番広告ユニットを使うのは「production チャンネルのリリースビルド」のみ（AdBanner と同じ方針）。
+// 内部配信ビルドは __DEV__===false になるため、チャンネル判定でテスターへの実広告配信を防ぐ。
+const isProductionRelease = !__DEV__ && Updates.channel === 'production';
 
-const AD_DURATION = 5; // 秒（本番は実際の動画長さに合わせる）
+const REWARDED_AD_UNIT_ID = Platform.select({
+  ios: 'ca-app-pub-1205763421067066/2949276746',
+  android: 'ca-app-pub-1205763421067066/2419472328',
+}) ?? '';
 
-type Phase = 'loading' | 'playing' | 'done';
+// react-native-google-mobile-ads はネイティブモジュールが必要なため Expo Go では使えない
+const AdSDK = isExpoGo ? null : (() => {
+  try {
+    // Expo Go では存在しないネイティブモジュールを実行時にだけ読み込むため require を使う
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require('react-native-google-mobile-ads') as typeof import('react-native-google-mobile-ads');
+  } catch {
+    return null;
+  }
+})();
+
+const MOCK_AD_DURATION = 5; // 秒（Expo Go用モック広告の再生時間）
+
+type Phase = 'loading' | 'playing' | 'done' | 'unavailable';
 
 type Props = {
   visible: boolean;
@@ -26,20 +40,44 @@ type Props = {
 
 export default function RewardedAdModal({ visible, onComplete, onDismiss }: Props) {
   const [phase, setPhase] = useState<Phase>('loading');
-  const [countdown, setCountdown] = useState(AD_DURATION);
+  const [countdown, setCountdown] = useState(MOCK_AD_DURATION);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // 親の再レンダーでコールバックの参照が変わっても広告を作り直さないよう ref 経由で呼ぶ
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
 
   useEffect(() => {
     if (!visible) {
       setPhase('loading');
-      setCountdown(AD_DURATION);
+      setCountdown(MOCK_AD_DURATION);
       if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
 
-    // 広告ロードをシミュレート（本番: RewardedAd.load()）
-    const loadTimeout = setTimeout(() => setPhase('playing'), 1000);
-    return () => clearTimeout(loadTimeout);
+    if (!AdSDK) {
+      // Expo Go: モック広告（カウントダウン画面）にフォールバック
+      const loadTimeout = setTimeout(() => setPhase('playing'), 1000);
+      return () => clearTimeout(loadTimeout);
+    }
+
+    const { RewardedAd, RewardedAdEventType, AdEventType, TestIds } = AdSDK;
+    const unitId = isProductionRelease ? REWARDED_AD_UNIT_ID : TestIds.REWARDED;
+    const rewarded = RewardedAd.createForAdRequest(unitId);
+    let earned = false;
+
+    const unsubscribers = [
+      rewarded.addAdEventListener(RewardedAdEventType.LOADED, () => rewarded.show()),
+      rewarded.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => { earned = true; }),
+      rewarded.addAdEventListener(AdEventType.CLOSED, () => {
+        // 報酬獲得前に広告を閉じた場合はスキャンさせない
+        if (earned) setPhase('done');
+        else onDismissRef.current();
+      }),
+      // 在庫なし・通信不良等で広告を出せないときはユーザーをブロックしない（スキャンへ進める）
+      rewarded.addAdEventListener(AdEventType.ERROR, () => setPhase('unavailable')),
+    ];
+    rewarded.load();
+    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
   }, [visible]);
 
   useEffect(() => {
@@ -78,9 +116,7 @@ export default function RewardedAdModal({ visible, onComplete, onDismiss }: Prop
         {phase === 'playing' && (
           <>
             <View style={styles.topBar}>
-              {isExpoGo && (
-                <Text style={styles.devBadge}>開発用モック</Text>
-              )}
+              <Text style={styles.devBadge}>開発用モック</Text>
               <View style={styles.countdownBadge}>
                 <Text style={styles.countdownText}>{countdown}秒</Text>
               </View>
@@ -89,9 +125,7 @@ export default function RewardedAdModal({ visible, onComplete, onDismiss }: Prop
             <View style={styles.center}>
               <Text style={styles.tvIcon}>📺</Text>
               <Text style={styles.playingText}>広告を視聴中...</Text>
-              <Text style={styles.playingSubText}>
-                {isExpoGo ? '（開発環境: モック広告）' : '動画をご覧ください'}
-              </Text>
+              <Text style={styles.playingSubText}>（開発環境: モック広告）</Text>
             </View>
 
             <View style={styles.bottomBar}>
@@ -105,6 +139,16 @@ export default function RewardedAdModal({ visible, onComplete, onDismiss }: Prop
             <Text style={styles.doneIcon}>✓</Text>
             <Text style={styles.doneTitle}>視聴完了！</Text>
             <Text style={styles.doneSubText}>レシートスキャンが利用できます</Text>
+            <TouchableOpacity style={styles.startBtn} onPress={onComplete}>
+              <Text style={styles.startBtnText}>スキャンを開始する</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {phase === 'unavailable' && (
+          <View style={styles.center}>
+            <Text style={styles.unavailableTitle}>広告を読み込めませんでした</Text>
+            <Text style={styles.doneSubText}>そのままレシートスキャンをご利用いただけます</Text>
             <TouchableOpacity style={styles.startBtn} onPress={onComplete}>
               <Text style={styles.startBtnText}>スキャンを開始する</Text>
             </TouchableOpacity>
@@ -197,6 +241,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 24,
     fontWeight: 'bold',
+  },
+  unavailableTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
   },
   doneSubText: {
     color: 'rgba(255,255,255,0.6)',

@@ -16,7 +16,7 @@ iPhone/Android両対応の家計簿アプリ。家族で収支を共有し、SVG
 - 画像処理: expo-image-manipulator（リサイズ・圧縮）
 - 課金: react-native-purchases（RevenueCat — プレミアム判定）
 - 分析: posthog-react-native（画面遷移・イベント計測）
-- 広告: react-native-google-mobile-ads（プレースホルダー実装中）
+- 広告: react-native-google-mobile-ads（バナー + リワード実装済み。Expo Go ではリワードはモック表示）
 
 ## デザインテーマ: 藍染（Aizome）
 テーマカラーは `src/theme/aizome.ts` で一元管理：
@@ -122,6 +122,13 @@ Claudeは作業中に遭遇したバグ・エラーとその解決過程を「�
 - iOSで入力欄がキーボードに隠れて見えない → 素のScrollViewはキーボードを自動回避しない。ScrollViewに `automaticallyAdjustKeyboardInsets`（iOS向け・Androidは無害、RN0.71+）を付けるか、KeyboardAvoidingViewで包む。Androidは app.json の softwareKeyboardLayoutMode 既定（resize）で概ねOK。新規に入力欄を追加する画面では必ずどちらかを適用する
 - 絵文字が白黒の線画（テキスト表示）で「変な」見た目になる → そのコードポイントが Emoji_Presentation=No（例: 👁 EYE U+1F441, ❤ U+2764, ✏ U+270F 等）。末尾に異体字セレクタ U+FE0F（`️`）を付けてカラー絵文字を強制する（`'👁'`→`'👁️'`）
 - react-native-svg で `<Svg width="100%" viewBox=...>` だけ（height省略）だと高さが 0 に潰れてグラフが描画されない → 親Viewの `onLayout` で実幅を測り Svg に width/height を数値で渡す。固定座標系なら viewBox はそのまま `height={実幅*H/W}`、可変なら width=実幅・viewBox幅も実幅にして1:1。ReportScreen の折れ線・棒グラフ両方がこれで非表示になっていた
+- 画面のデータ取得範囲(from/to)と集計側のフィルタ範囲のズレに注意: 週は月末をまたぎ「今週」は今日基準なので、取得toを月末で切ると実データがあるのに¥0/データなしになる → toは「月末を含む週の末尾」と「今日を含む週の末尾」の遅い方まで広げる（ReportScreen）
+- 前月同日比較で累計配列を daysElapsed でインデックスすると前月が短い月で範囲外→`?? 0`で当月全額が前月比になる → `Math.min(daysElapsed, 配列長)` でクランプ
+- 電卓UIで演算子直後に「=」を押すと第2オペランドが0扱いになり ×0=0 で入力金額が消える → 未入力('0')のままの確定は演算を取り消して accumulator を採用する
+- 適用済みマイグレーションのin-place編集は適用済みDBには再実行されず届かない（schema_migrationsに記録済みのため）→ 修正は必ず新規マイグレーションとして追加する（例: 0013のpgcrypto修飾修正を0016として切り出し）
+- クライアント側のfetchタイムアウト（AbortController）はサーバ側のコミットを取り消せない → DB書き込みに短いタイムアウトを掛けるとエラー表示後のリトライで二重登録になる。abortは読み取り専用とし、書き込みはストール保険の長いタイムアウトのみにする
+- PostgRESTで存在しない列に `.eq()` すると42703エラー（例: budgets.user_id は存在しない— budgetsはgroup_id/category_idのみ。連鎖削除はFKのON DELETE CASCADEに任せる）
+- プロフィール取得失敗時にuser=nullでAuthScreenへ落とすと、「登録なしで始める」タップで signInAnonymously() が新規アカウントを作り既存データが永久に孤立する → セッションが有効なら最小プロフィールでアプリへ進め、signInAnonymously自体にも既存セッション再利用ガードを入れる
 - レシートOCRで「お預かり金額」を合計と誤判定 → 否定指示だけでは不十分。プロンプトに具体例（「合計1,580/お預かり2,000/お釣り420 → totalは1580」）を入れ、「金額の隣のラベルを読み『合計』ラベルの額だけ採用」と明示すると確実に改善。「最終合計」という表現は最下部のお預かり/お釣りを拾う誘因になるので使わない。あわせて未使用だった rawText（画像テキスト全文）を出力JSONから削除し出力トークンを節約（精度向上とコスト削減を同時に達成）
 
 ## 認証フロー
@@ -159,8 +166,18 @@ Claudeは作業中に遭遇したバグ・エラーとその解決過程を「�
 
 ### 課金（RevenueCat）
 - authStore.isPremium でプレミアム状態を管理
-- プレミアムユーザーには広告を非表示（AdBanner）
-- API Key はプレースホルダー（`appl_xxx` / `goog_xxx`）— ストア申請前に差し替え
+- プレミアムユーザーには広告を非表示（AdBanner）、レシートスキャン前のリワード広告もスキップ
+- API Key: iOS は実キー設定済み。Android はプレースホルダー（`goog_xxx`）— ストア申請前に差し替え
+- プレースホルダーキー / Expo Go 環境では configure せず非プレミアムへ安全にフォールバック。purchase/restore は明示エラーを投げる
+- 月額価格は `getMonthlyPriceString()` でストア設定値（priceString）を取得して表示（取得不可時は ¥480 フォールバック）
+- 動作確認の前提: RevenueCat ダッシュボードに Entitlement `premium` と Offerings（default → monthly）、ストアに月額商品の登録が必要。実購入テストは TestFlight + Sandbox のみ（Expo Go 不可）
+- 課金画面（PremiumScreen）はストアの審査要件（App Store Guideline 3.1.2 / Google Play）を満たす必要がある。プラン名・期間・価格・自動更新の開示文・購入復元・利用規約（EULA）/プライバシーポリシーへのリンクを消さないこと。URLは `src/utils/links.ts` で一元管理（MenuScreen と共用）
+
+### 広告（AdMob）
+- バナー（AdBanner）: ホーム・履歴・分析に配置。プレミアム時は非表示
+- リワード（RewardedAdModal）: レシートスキャン前に表示。報酬獲得前に閉じたらスキャンさせない。ロード失敗（在庫なし等）はブロックせずスキャンへ進める。Expo Go では5秒カウントダウンのモック
+- 本番広告ユニットIDを使うのは「production チャンネルのリリースビルド」のみ。それ以外（__DEV__ / staging / Expo Go）はテストID — テスターの閲覧・タップによる無効トラフィック（アカウント停止）防止のフェイルセーフ
+- 初期化順序: ATT許諾（iOS）→ mobileAds().initialize()（App.tsx）
 
 ### 分析（PostHog）
 - PostHogProvider は使わない（iOS Modal競合のため）。posthog クライアントを直接利用
@@ -196,10 +213,13 @@ Claudeは作業中に遭遇したバグ・エラーとその解決過程を「�
 - 画像はBase64でEdge Functionに送信。ファイル保存は行わない（プライバシー）
 
 ## 公開準備ステータス
-実装済み: Edge Function でのAPIキー管理 / 藍染テーマ全画面適用 / 匿名→メールのオンボーディング / PostHog分析 / RevenueCat課金（APIキーはプレースホルダー）/ アプリ識別子（com.moriya.kakeibo）/ アイコン・スプラッシュ（generate_icons.py 生成）/ AdBanner（AdMob接続）
+実装済み: Edge Function でのAPIキー管理 / 藍染テーマ全画面適用 / 匿名→メールのオンボーディング / PostHog分析 / RevenueCat課金（iOSキー設定済み・Androidはプレースホルダー）/ アプリ識別子（com.moriyaryoga.kakeibo）/ アイコン・スプラッシュ（generate_icons.py 生成）/ AdBanner（AdMob接続）/ リワード広告（実広告 + Expo Goモックフォールバック）/ プライバシーポリシー・利用規約（docs/ を GitHub Pages で公開、アプリ内リンク済み）/ Apple Developer Account・App Store Connect アプリレコード（ascAppId は eas.json）/ 課金画面のストア審査要件対応
 
-残タスク:
-- [ ] RevenueCat APIキーの本番設定
-- [ ] プライバシーポリシー・利用規約
-- [ ] Apple Developer Account 登録
-- [ ] EAS Build → ストア申請
+残タスク（iOS先行リリース想定）:
+- [ ] App Store Connect に月額サブスク商品を作成し、RevenueCat（Entitlement `premium` / Offerings default→monthly）と紐付け
+- [ ] TestFlight + Sandbox で購入・復元・アカウント削除を実機確認
+- [ ] production ビルドで本番広告（バナー / リワード）の表示確認、AdMob アカウントの支払い情報
+- [ ] Anthropic Console で API 利用額の上限・アラート設定（claude-proxy のレート制限はインメモリで1ユーザー10回/分のみ）
+- [ ] App Privacy（プライバシーラベル）入力・スクリーンショット等の掲載情報
+- [ ] EAS Build → `eas submit` → 審査提出
+- [ ] Android対応（後回し可）: RevenueCat Android APIキー / Play Console 登録 / Data safety フォーム / app.json の不要権限 RECORD_AUDIO 削除

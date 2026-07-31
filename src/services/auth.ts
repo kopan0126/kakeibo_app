@@ -97,20 +97,29 @@ export async function updateProfile(
 
 // 匿名サインイン（メール登録なしで始める）
 export async function signInAnonymously(): Promise<{ user: UserProfile | null; error: AuthError | null }> {
-  const { data, error } = await supabase.auth.signInAnonymously();
-  if (error) return { user: null, error: { message: error.message } };
-  if (!data.user) return { user: null, error: { message: '匿名サインインに失敗しました' } };
+  // 既に有効なセッションがある場合は新規匿名ユーザーを作らず既存アカウントを再利用する。
+  // （プロフィール取得失敗で AuthScreen に落ちた状態から「登録なしで始める」を
+  //   タップすると、既存アカウントのデータが新アカウントに置き換わり永久に孤立するため）
+  const { data: { session } } = await supabase.auth.getSession();
+  let authUser = session?.user ?? null;
+
+  if (!authUser) {
+    const { data, error } = await supabase.auth.signInAnonymously();
+    if (error) return { user: null, error: { message: error.message } };
+    if (!data.user) return { user: null, error: { message: '匿名サインインに失敗しました' } };
+    authUser = data.user;
+  }
 
   // public.users に行が存在しない場合は作成
   const { data: profile } = await supabase
     .from('users')
     .select('*')
-    .eq('id', data.user.id)
+    .eq('id', authUser.id)
     .single();
 
   if (!profile) {
     await supabase.from('users').insert({
-      id: data.user.id,
+      id: authUser.id,
       email: '',
       display_name: 'ゲスト',
       avatar_url: null,
@@ -119,12 +128,12 @@ export async function signInAnonymously(): Promise<{ user: UserProfile | null; e
 
   return {
     user: profile ?? {
-      id: data.user.id,
-      email: '',
+      id: authUser.id,
+      email: authUser.email ?? '',
       display_name: 'ゲスト',
       avatar_url: null,
       hidden_category_ids: [],
-      created_at: data.user.created_at,
+      created_at: authUser.created_at,
     },
     error: null,
   };

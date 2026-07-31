@@ -19,13 +19,21 @@ if (!supabaseUrl || !supabaseAnonKey) {
 const TIMEOUT_MS = 10000; // auth / REST（DB）向けの短いタイムアウト
 const LONG_TIMEOUT_MS = 60000; // Edge Function / Storage 向けの長いタイムアウト
 
-function timeoutForUrl(input: RequestInfo | URL): number {
+function timeoutFor(input: RequestInfo | URL, init: RequestInit): number {
   const url =
     typeof input === 'string' ? input
     : input instanceof URL ? input.href
     : input.url;
   // Edge Function（claude-proxy の OCR / delete-account）と Storage（画像アップロード）は長め
   if (url.includes('/functions/v1/') || url.includes('/storage/v1/')) {
+    return LONG_TIMEOUT_MS;
+  }
+  // REST（DB）への書き込みは途中で abort してもサーバ側のコミットは取り消せない。
+  // 短いタイムアウトだと「クライアントはエラー表示・サーバは保存済み」となり、
+  // ユーザーのリトライで取引が二重登録される。書き込み（非 GET/HEAD）は
+  // ストール保険として長いタイムアウトのみ掛け、短い abort は読み取り専用にする。
+  const method = (init.method ?? 'GET').toUpperCase();
+  if (url.includes('/rest/v1/') && method !== 'GET' && method !== 'HEAD') {
     return LONG_TIMEOUT_MS;
   }
   return TIMEOUT_MS;
@@ -37,7 +45,7 @@ function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}): Pro
     return fetch(input, init);
   }
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutForUrl(input));
+  const timer = setTimeout(() => controller.abort(), timeoutFor(input, init));
   return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 

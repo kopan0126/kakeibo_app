@@ -132,7 +132,12 @@ export default function AddTransactionScreen({ navigation, route }: { navigation
     }
     if (key === '=') {
       if (operator !== null && accumulator !== null) {
-        const result = calculate(parseInt(accumulator, 10), operator, parseInt(amountStr, 10));
+        // 第2オペランド未入力（'0'）のままの確定は演算を取り消して元の金額に戻す。
+        // ×だと a×0=0 で入力済みの金額が消えてしまうため（演算子キーの「未入力なら
+        // 据え置き」と同じ規約。+/−/÷ は b=0 でも元々 a のまま）
+        const result = amountStr === '0'
+          ? parseInt(accumulator, 10)
+          : calculate(parseInt(accumulator, 10), operator, parseInt(amountStr, 10));
         setAmountStr(String(result));
         setAccumulator(null);
         setOperator(null);
@@ -151,8 +156,11 @@ export default function AddTransactionScreen({ navigation, route }: { navigation
   }
 
   async function handleSave() {
+    // 「=」キーと同じ評価規約: 第2オペランド未入力なら演算を取り消して accumulator を採用
     const amount = operator !== null && accumulator !== null
-      ? calculate(parseInt(accumulator, 10), operator, parseInt(amountStr, 10))
+      ? (amountStr === '0'
+          ? parseInt(accumulator, 10)
+          : calculate(parseInt(accumulator, 10), operator, parseInt(amountStr, 10)))
       : parseInt(amountStr, 10);
     if (!amount || amount === 0) {
       Alert.alert('エラー', '金額を入力してください');

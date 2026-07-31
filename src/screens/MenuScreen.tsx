@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../stores/authStore';
 import { signOut } from '../services/auth';
 import { supabase } from '../services/supabase';
+import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '../utils/links';
 import { AI } from '../theme/aizome';
 
 type RowProps = {
@@ -136,12 +137,12 @@ export default function MenuScreen({ navigation }: { navigation: any }) {
         <View style={styles.group}>
           <MenuRow
             label="プライバシーポリシー"
-            onPress={() => Linking.openURL('https://kopan0126.github.io/kakeibo_app/privacy-policy.html')}
+            onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
           />
           <View style={styles.divider} />
           <MenuRow
             label="利用規約"
-            onPress={() => Linking.openURL('https://kopan0126.github.io/kakeibo_app/terms-of-service.html')}
+            onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL)}
           />
         </View>
 

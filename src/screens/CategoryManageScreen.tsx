@@ -343,7 +343,14 @@ export default function CategoryManageScreen() {
                   <Text style={styles.selectedPhotoLabel}>選択中の写真</Text>
                   <TouchableOpacity
                     style={styles.clearPhotoBtn}
-                    onPress={() => setFormIcon(DEFAULT_ICON)}
+                    onPress={() => {
+                      // 編集中は「選び直しの取り消し」として元のアイコンへ戻す。
+                      // 絵文字ピッカーは廃止済みのため、既定アイコンで上書き保存すると
+                      // 元の絵文字/写真を復元する手段がない。元アイコン自体が写真で
+                      // それを外したい場合（formIcon が元と同一）と新規作成時のみ既定へ
+                      const original = editTarget?.icon;
+                      setFormIcon(original && original !== formIcon ? original : DEFAULT_ICON);
+                    }}
                   >
                     <Text style={styles.clearPhotoBtnText}>✕ 解除</Text>
                   </TouchableOpacity>

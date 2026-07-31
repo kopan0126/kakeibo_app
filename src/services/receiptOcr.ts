@@ -15,7 +15,7 @@ const USER_PROMPT = `この画像を解析してください。
   "date": "YYYY-MM-DD形式（不明ならnull）",
   "totalAmount": 「合計」ラベルの税込金額（円、不明ならnull）,
   "items": [{"name": "品目名", "amount": 金額}],
-  "suggestedCategory": "食費/交通費/日用品/外食/娯楽/医療/衣類/給与/その他 のいずれか",
+  "suggestedCategory": "支出なら 食費/交通費/日用品/外食/娯楽/医療/衣類/サブスク/税金/その他、収入なら 給与/副業/お年玉 のいずれか",
   "transactionType": "expense" または "income",
   "confidence": "high" または "medium" または "low"
 }

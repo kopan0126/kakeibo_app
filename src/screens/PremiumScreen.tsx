@@ -1,17 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity, ScrollView,
-  StyleSheet, Alert, ActivityIndicator,
+  StyleSheet, Alert, ActivityIndicator, Linking, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../stores/authStore';
-import { purchaseMonthly, restorePurchases } from '../services/purchases';
+import { purchaseMonthly, restorePurchases, getMonthlyPriceString } from '../services/purchases';
+import { PRIVACY_POLICY_URL, TERMS_OF_SERVICE_URL } from '../utils/links';
 import { AI } from '../theme/aizome';
+
+// サブスクリプション名は App Store Connect / Google Play の商品表示名と揃える
+const PLAN_NAME = 'プレミアムプラン（1ヶ月）';
+const STORE_NAME = Platform.select({ ios: 'App Store', android: 'Google Play' }) ?? 'ストア';
+const ACCOUNT_NAME = Platform.select({ ios: 'Apple ID', android: 'Google アカウント' }) ?? 'アカウント';
 
 export default function PremiumScreen() {
   const { isPremium, setPremium } = useAuthStore();
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  // ストア設定の価格を正とする。取得できない環境のみ既定表示にフォールバック
+  const [priceString, setPriceString] = useState('¥480');
+
+  useEffect(() => {
+    let mounted = true;
+    getMonthlyPriceString().then((price) => {
+      if (mounted && price) setPriceString(price);
+    });
+    return () => { mounted = false; };
+  }, []);
 
   async function handlePurchase() {
     setIsPurchasing(true);
@@ -20,6 +36,11 @@ export default function PremiumScreen() {
       if (success) {
         setPremium(true);
         Alert.alert('登録完了', 'プレミアムプランへようこそ！広告が非表示になりました。');
+      } else {
+        Alert.alert(
+          '確認できませんでした',
+          '購入処理は完了しましたが、プランの有効化を確認できませんでした。「購入を復元する」をお試しください。',
+        );
       }
     } catch (e: any) {
       // ユーザーが購入をキャンセルした場合は無視
@@ -76,9 +97,10 @@ export default function PremiumScreen() {
             </>
           ) : (
             <>
+              <Text style={styles.planName}>{PLAN_NAME}</Text>
               <View style={styles.priceRow}>
-                <Text style={styles.price}>¥480</Text>
-                <Text style={styles.pricePer}> / 月（税込）</Text>
+                <Text style={styles.price}>{priceString}</Text>
+                <Text style={styles.pricePer}> / 月（税込・自動更新）</Text>
               </View>
               <Text style={styles.desc}>
                 ・レシートスキャンの広告をスキップ{'\n'}
@@ -103,8 +125,27 @@ export default function PremiumScreen() {
                   ? <ActivityIndicator color={AI.textSoft} size="small" />
                   : <Text style={styles.restoreText}>購入を復元する</Text>}
               </TouchableOpacity>
+
+              {/* 自動更新サブスクの必須開示事項（App Store Guideline 3.1.2 / Google Play） */}
+              <Text style={styles.terms}>
+                ・お支払いは購入確定時に{ACCOUNT_NAME}に請求されます{'\n'}
+                ・期間終了の24時間以上前に自動更新をオフにしない限り、同額・同期間で自動更新されます{'\n'}
+                ・更新料金は期間終了前の24時間以内に請求されます{'\n'}
+                ・登録後は{STORE_NAME}のアカウント設定からいつでも管理・解約できます
+              </Text>
             </>
           )}
+        </View>
+
+        {/* 課金画面から利用規約（EULA）とプライバシーポリシーへ到達できるようにする */}
+        <View style={styles.legalRow}>
+          <TouchableOpacity onPress={() => Linking.openURL(TERMS_OF_SERVICE_URL)}>
+            <Text style={styles.legalLink}>利用規約</Text>
+          </TouchableOpacity>
+          <Text style={styles.legalSep}>・</Text>
+          <TouchableOpacity onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}>
+            <Text style={styles.legalLink}>プライバシーポリシー</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -131,6 +172,7 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 12, color: AI.textSoft, fontWeight: '600' },
   badgeTextActive: { color: AI.indigo },
   desc: { fontSize: 13, color: AI.textSoft, lineHeight: 20, marginBottom: 16 },
+  planName: { fontSize: 14, fontWeight: '600', color: AI.text, marginBottom: 2 },
   priceRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 12 },
   price: { fontSize: 32, fontWeight: 'bold', color: AI.indigo },
   pricePer: { fontSize: 14, color: AI.textSoft },
@@ -145,4 +187,15 @@ const styles = StyleSheet.create({
     backgroundColor: AI.washi, borderRadius: 8, padding: 12,
     borderWidth: 1, borderColor: AI.rule, marginTop: 4,
   },
+  terms: {
+    fontSize: 11, color: AI.textSoft, lineHeight: 17, marginTop: 12,
+  },
+  legalRow: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
+    marginTop: 16,
+  },
+  legalLink: {
+    fontSize: 12, color: AI.textSoft, textDecorationLine: 'underline',
+  },
+  legalSep: { fontSize: 12, color: AI.textSoft, marginHorizontal: 8 },
 });

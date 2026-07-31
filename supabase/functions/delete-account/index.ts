@@ -53,11 +53,12 @@ Deno.serve(async (req) => {
     if (txError) throw new Error(`transactions: ${txError.message}`);
 
     // 3-2. 予算
-    const { error: budgetError } = await supabaseAdmin
-      .from('budgets')
-      .delete()
-      .eq('user_id', userId);
-    if (budgetError) throw new Error(`budgets: ${budgetError.message}`);
+    // budgets に user_id 列は無い（group_id / category_id のみ）。
+    // ユーザーに紐づく予算行は、カスタムカテゴリ削除（3-4, category_id の
+    // ON DELETE CASCADE）とオーナーグループ削除（3-5, group_id の
+    // ON DELETE CASCADE）で連鎖削除されるため、ここでの個別削除は不要。
+    // （存在しない列への .eq('user_id') は 42703 エラーになり、
+    //   アカウント削除全体が無条件で失敗していた）
 
     // 3-3. AI レポート
     const { error: reportError } = await supabaseAdmin
