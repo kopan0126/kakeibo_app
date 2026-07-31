@@ -111,12 +111,16 @@ pgcrypto は `extensions` スキーマに設置済みであることを確認済
 > 教訓（CLAUDE.md より）: 新カラム・新関数は**クライアントより先にDBへ適用**する。
 > 適用済みマイグレーションの in-place 編集は届かないので、修正は必ず新規ファイルで。
 
-### B-2. Edge Function の再デプロイ
-`supabase/functions/delete-account/index.ts` をローカルで変更済み。デプロイ済みのものは古い可能性が高い。
+### ~~B-2. Edge Function の再デプロイ~~ ✅ 完了（2026-07-31）
+- [x] `npx supabase functions deploy delete-account`
+      ※ 自前で JWT 検証しているが、多層防御のため既定（JWT 検証あり）でデプロイ
+- [x] `npx supabase functions deploy claude-proxy --no-verify-jwt`
+      ※ 関数内で `supabase.auth.getUser(token)` により手動検証している
+- [x] secrets 確認: `ANTHROPIC_API_KEY` / `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` /
+      `SUPABASE_ANON_KEY` すべて設定済み
 
-- [ ] `npx supabase functions deploy delete-account`
-- [ ] `npx supabase functions deploy claude-proxy --no-verify-jwt`
-- [ ] `npx supabase secrets list` で `ANTHROPIC_API_KEY` が設定済みか確認
+> デプロイ時に `WARNING: Docker is not running` が出るが、リモートデプロイには影響しない
+> （ローカル実行用の警告）。
 
 ### ~~B-3. Anthropic API の利用上限・アラート設定~~ ✅ 完了（2026-07-31）
 - [x] Anthropic Console で月次の利用上限（spend limit）を設定
@@ -139,18 +143,22 @@ pgcrypto は `extensions` スキーマに設置済みであることを確認済
 ### ~~C-1. ブランチ整理~~ ✅ 完了（2026-07-31）
 - [x] `develop` の変更をコミット（`afa2b7e` / `0ab333a` / `3389110`）
 - [x] `develop` → `main` を fast-forward マージし、両ブランチを push
-- [ ] （任意）`.gitignore` に `supabase/.temp/` を追加。CLI 実行のたびに `cli-latest` が
-      dirty になりブランチ切替を妨げるため
+- [x] `.gitignore` に `supabase/.temp/` を追加し、`cli-latest` を追跡解除
+      （CLI 実行のたびに dirty になりブランチ切替を妨げていた）
 
 ### C-2. app.json の最終確認
-- [ ] `android.permissions` から `RECORD_AUDIO` を削除（**Android 対応時**。使っていない権限）
+- [x] `android.permissions` から `RECORD_AUDIO` を削除（2026-07-31。アプリに録音機能は無い）
 - [ ] iOS `buildNumber` は現在 `"8"`。`eas.json` で `autoIncrement: true` のため二重管理に注意
 - [ ] `version` `"1.0.0"` で提出するか確認
 
-### C-3. リリースビルド前チェック
-- [ ] `npm run type-check`（現在 pass）
-- [ ] `npm run lint`
-- [ ] `npx expo-doctor`
+### ~~C-3. リリースビルド前チェック~~ ✅ 完了（2026-07-31）
+- [x] `npm run type-check` — pass
+- [x] `npm run lint` — 0 errors / 20 warnings（既存の `any`・hooks deps のみ。新規増加なし）
+- [x] `npx expo-doctor` — **18/18 pass**
+      ※ 当初 `expo` と `expo-updates` に patch 版ズレがあったため `npx expo install --fix` で解消
+      （`expo-updates` は本番広告の判定 `Updates.channel === 'production'` の土台なので揃えた）
+
+> リリースビルド直前にもう一度この3つを流すこと。
 
 ---
 

@@ -41,5 +41,8 @@ yarn-error.*
 /ios
 /android
 
+# Supabase CLI のローカルキャッシュ（CLI 実行のたびに書き換わる）
+supabase/.temp/
+
 # local personal notes / memos
 build方針/
