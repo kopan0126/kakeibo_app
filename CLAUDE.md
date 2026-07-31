@@ -130,6 +130,8 @@ Claudeは作業中に遭遇したバグ・エラーとその解決過程を「�
 - PostgRESTで存在しない列に `.eq()` すると42703エラー（例: budgets.user_id は存在しない— budgetsはgroup_id/category_idのみ。連鎖削除はFKのON DELETE CASCADEに任せる）
 - プロフィール取得失敗時にuser=nullでAuthScreenへ落とすと、「登録なしで始める」タップで signInAnonymously() が新規アカウントを作り既存データが永久に孤立する → セッションが有効なら最小プロフィールでアプリへ進め、signInAnonymously自体にも既存セッション再利用ガードを入れる
 - レシートOCRで「お預かり金額」を合計と誤判定 → 否定指示だけでは不十分。プロンプトに具体例（「合計1,580/お預かり2,000/お釣り420 → totalは1580」）を入れ、「金額の隣のラベルを読み『合計』ラベルの額だけ採用」と明示すると確実に改善。「最終合計」という表現は最下部のお預かり/お釣りを拾う誘因になるので使わない。あわせて未使用だった rawText（画像テキスト全文）を出力JSONから削除し出力トークンを節約（精度向上とコスト削減を同時に達成）
+- 列DEFAULTのスキーマ修飾を `information_schema.columns.column_default` で判定してはいけない → 保存された式は**現在の search_path を基準に逆生成**されるため、`extensions` が search_path にあると `extensions.gen_random_bytes(...)` が `gen_random_bytes(...)` と修飾なしで表示される。さらに列DEFAULTはテキストではなく**関数OID解決済みのパースツリー**として保存されるのでDDLの修飾は保存時点で消える。ALTERがエラーなく通れば適用は確定。決定的に確認するなら `pg_attrdef` → `pg_depend` → `pg_proc` → `pg_namespace` を辿って参照先関数のスキーマを見る
+- `npx supabase migration list` で全マイグレーションが `remote: ""` になる → スキーマをダッシュボードのSQLエディタから手動適用してきた場合、`supabase_migrations.schema_migrations` が空のままになる。この状態で `supabase db push` すると**0001から全部流そうとして DROP/CREATE で本番データを壊す**。手動運用を続ける限り push は禁止。適用状況の判断も migration list ではなくスキーマの直接確認で行う
 
 ## 認証フロー
 - 初回起動: AuthScreen を表示（ログイン / 新規登録 / 「登録なしで始める」の3択）
