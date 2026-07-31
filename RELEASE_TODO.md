@@ -60,7 +60,7 @@
 
 ## 🟠 B. サーバー / インフラ
 
-### B-1. Supabase マイグレーション 🚨 `db push` 禁止（重要）
+### B-1. Supabase マイグレーション 🚨 `db push` 禁止 ＋ 0016 未適用（重要）
 2026-07-31 に `npx supabase migration list` が通るようになったが、**0001〜0016 のすべてが
 `remote: ""`（リモート未記録）** だった。アプリは動作しているため、スキーマはダッシュボードの
 SQL エディタから手動適用されてきたと判断される（`supabase_migrations.schema_migrations` が空）。
@@ -71,8 +71,36 @@ CLI は全マイグレーションを未適用とみなし **0001 から流そ�
 
 同じ理由で、`migration list` の出力は適用状況の判断材料にならない。**スキーマを直接確認する。**
 
-- [x] 0016 を適用（ユーザー作業により完了）
-- [ ] 適用結果をスキーマで裏取り（SQLエディタ）:
+#### 🚨 0016 は **未適用**（2026-07-31 に確認）
+スキーマを直接確認したところ、実際の DEFAULT は無修飾のままだった:
+
+```
+upper(encode(gen_random_bytes(4), 'hex'::text))   ← extensions. が無い
+```
+
+**実害**: `src/services/family.ts:23-29` の `createGroup()` は `invite_code` を渡さず
+**DB の DEFAULT に完全に依存**している。`authenticated` ロールの `search_path` に
+`extensions` が含まれない場合、**家族グループの新規作成が丸ごと失敗する**
+（`function gen_random_bytes(integer) does not exist`）。
+※ `join_group_by_invite`（0013）は `family_members` にしか INSERT しないため影響なし。
+
+**手順**（`db push` 禁止のため、ダッシュボードの SQL エディタで実行）:
+
+- [ ] 1. pgcrypto の設置スキーマを確認
+      ```sql
+      select e.extname, n.nspname
+      from pg_extension e
+      join pg_namespace n on n.oid = e.extnamespace
+      where e.extname = 'pgcrypto';
+      ```
+- [ ] 2. 0016 本体を実行（`nspname` が `public` だった場合は `extensions.` を `public.` に読み替える）
+      ```sql
+      create extension if not exists pgcrypto with schema extensions;
+
+      alter table public.family_groups
+        alter column invite_code set default upper(encode(extensions.gen_random_bytes(4), 'hex'));
+      ```
+- [ ] 3. 再確認
       ```sql
       select column_default
       from information_schema.columns
@@ -81,9 +109,7 @@ CLI は全マイグレーションを未適用とみなし **0001 から流そ�
         and column_name  = 'invite_code';
       ```
       期待値: `upper(encode(extensions.gen_random_bytes(4), 'hex'::text))`
-      → `extensions.` が無ければ未適用。**グループ作成が
-      「function gen_random_bytes(integer) does not exist」で失敗する**
-- [ ] 実機で家族グループを新規作成できることを確認（上記の機能的な裏取り）
+- [ ] 4. 実機で家族グループを新規作成できることを確認（機能面の裏取り）
 - [ ] （将来）マイグレーション管理を CLI に寄せるなら、既存スキーマを壊さないよう
       `schema_migrations` へ 0001〜0016 を記録済みとして手動 INSERT してから運用を切り替える
 
