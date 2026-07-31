@@ -23,16 +23,12 @@
 
 ## 🔴 A. 審査ブロッカー（提出前に必須）
 
-### A-1. GitHub Pages への反映確認
-規約・ポリシーを更新したので、**公開URLに反映されたか必ず目視確認**する。
-GitHub Pages は反映に数分かかる。キャッシュに注意。
+### ~~A-1. GitHub Pages への反映確認~~ ✅ 完了（2026-07-31）
+`develop` → `main` を fast-forward マージして push。公開URLで反映を確認済み。
 
-- [ ] https://kopan0126.github.io/kakeibo_app/terms-of-service.html に第5条（有料サブスクリプション）が表示される
-- [ ] https://kopan0126.github.io/kakeibo_app/privacy-policy.html に 3-5 PostHog / 3-6 RevenueCat が表示される
-- [ ] アプリ内（メニュー画面・プレミアム画面）のリンクから両ページが開ける
-
-> 注: `docs/` は `main` ブランチから配信されている想定。現在の作業ブランチは `develop` なので、
-> **main へマージ（または docs のみ push）しないと公開ページは古いまま**。ここは見落としやすい。
+- [x] terms-of-service.html に第5条（有料サブスクリプション）・月額480円・第14条まで反映
+- [x] privacy-policy.html に 3-5 PostHog / 3-6 RevenueCat・金額レンジの記述・バンドルID修正が反映
+- [ ] アプリ内（メニュー画面・プレミアム画面）のリンクから両ページが開ける（実機で確認）
 
 ### ~~A-2. PostHog に取引金額を送っている件~~ ✅ 対応済み（2026-07-31）
 `trackTransactionSaved` が取引金額を生値で PostHog に送っていた問題。
@@ -64,11 +60,32 @@ GitHub Pages は反映に数分かかる。キャッシュに注意。
 
 ## 🟠 B. サーバー / インフラ
 
-### B-1. Supabase マイグレーション 0016 の本番適用確認 ⚠️未確認
-`npx supabase migration list` が DB 接続タイムアウトで失敗し、**適用状況を確認できていない**。
+### B-1. Supabase マイグレーション 🚨 `db push` 禁止（重要）
+2026-07-31 に `npx supabase migration list` が通るようになったが、**0001〜0016 のすべてが
+`remote: ""`（リモート未記録）** だった。アプリは動作しているため、スキーマはダッシュボードの
+SQL エディタから手動適用されてきたと判断される（`supabase_migrations.schema_migrations` が空）。
 
-- [ ] `npx supabase migration list` が通る状態にする（ネットワーク / プロジェクト稼働状況を確認）
-- [ ] `0016_fix_invite_code_default.sql` が本番に適用済みか確認、未適用なら `npx supabase db push`
+**⚠️ `npx supabase db push` を絶対に実行しないこと。**
+CLI は全マイグレーションを未適用とみなし **0001 から流そうとする**。0001 には `DROP` / `CREATE TABLE`
+が含まれるため、本番データを破壊しうる。今後もダッシュボードの SQL エディタから適用する。
+
+同じ理由で、`migration list` の出力は適用状況の判断材料にならない。**スキーマを直接確認する。**
+
+- [x] 0016 を適用（ユーザー作業により完了）
+- [ ] 適用結果をスキーマで裏取り（SQLエディタ）:
+      ```sql
+      select column_default
+      from information_schema.columns
+      where table_schema = 'public'
+        and table_name   = 'family_groups'
+        and column_name  = 'invite_code';
+      ```
+      期待値: `upper(encode(extensions.gen_random_bytes(4), 'hex'::text))`
+      → `extensions.` が無ければ未適用。**グループ作成が
+      「function gen_random_bytes(integer) does not exist」で失敗する**
+- [ ] 実機で家族グループを新規作成できることを確認（上記の機能的な裏取り）
+- [ ] （将来）マイグレーション管理を CLI に寄せるなら、既存スキーマを壊さないよう
+      `schema_migrations` へ 0001〜0016 を記録済みとして手動 INSERT してから運用を切り替える
 
 > 教訓（CLAUDE.md より）: 新カラム・新関数は**クライアントより先にDBへ適用**する。
 > 適用済みマイグレーションの in-place 編集は届かないので、修正は必ず新規ファイルで。
@@ -80,14 +97,14 @@ GitHub Pages は反映に数分かかる。キャッシュに注意。
 - [ ] `npx supabase functions deploy claude-proxy --no-verify-jwt`
 - [ ] `npx supabase secrets list` で `ANTHROPIC_API_KEY` が設定済みか確認
 
-### B-3. Anthropic API の利用上限・アラート設定 🔴重要
-`supabase/functions/claude-proxy/index.ts:10` のレート制限は **インメモリ `Map`**。
-Edge Function はインスタンスが複数立ち、コールドスタートで揮発するため、実効的な防御にはならない。
-**課金事故を止める最後の砦は Anthropic Console 側の設定**。
+### ~~B-3. Anthropic API の利用上限・アラート設定~~ ✅ 完了（2026-07-31）
+- [x] Anthropic Console で月次の利用上限（spend limit）を設定
+- [x] 利用額アラートのメール通知を有効化
+- [ ] （任意・リリース後で可）レート制限を Supabase のテーブル or Upstash 等の永続ストアに移す
 
-- [ ] Anthropic Console で月次の利用上限（spend limit）を設定
-- [ ] 利用額アラートのメール通知を有効化
-- [ ] （任意）レート制限を Supabase のテーブル or Upstash 等の永続ストアに移す検討
+> `claude-proxy/index.ts:10` のレート制限はインメモリ `Map` のまま。Edge Function は
+> インスタンスが複数立ちコールドスタートで揮発するため、実効的な防御にはならない。
+> 現状は Console 側の上限が唯一の防波堤である、という前提を忘れないこと。
 
 ### B-4. Supabase プロジェクトの運用確認
 - [ ] 無料プランの自動一時停止（inactivity pause）条件を確認。リリース後に止まると全ユーザーが使えなくなる
@@ -98,9 +115,11 @@ Edge Function はインスタンスが複数立ち、コールドスタートで
 
 ## 🟡 C. コード / ビルド設定
 
-### C-1. ブランチ整理
-- [ ] `develop` の変更をコミット
-- [ ] `develop` → `main` へマージ（`docs/` の公開反映も兼ねる）
+### ~~C-1. ブランチ整理~~ ✅ 完了（2026-07-31）
+- [x] `develop` の変更をコミット（`afa2b7e` / `0ab333a` / `3389110`）
+- [x] `develop` → `main` を fast-forward マージし、両ブランチを push
+- [ ] （任意）`.gitignore` に `supabase/.temp/` を追加。CLI 実行のたびに `cli-latest` が
+      dirty になりブランチ切替を妨げるため
 
 ### C-2. app.json の最終確認
 - [ ] `android.permissions` から `RECORD_AUDIO` を削除（**Android 対応時**。使っていない権限）
