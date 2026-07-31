@@ -17,6 +17,23 @@ export function trackScreen(screenName: string) {
 
 // ─── Transaction events ───────────────────────────────────────
 
+// 金額をそのまま外部の分析基盤へ送ると、App Privacy 上「財務情報」の収集にあたり、
+// 家計簿アプリとしてユーザーの期待からも外れる。分布の把握には十分なレンジに丸めて送る。
+// 丸めは services 層で行い、生の金額が analytics の外へ出ないようにする。
+const AMOUNT_BUCKETS: readonly { max: number; label: string }[] = [
+  { max: 1000, label: '<1000' },
+  { max: 5000, label: '1000-4999' },
+  { max: 10000, label: '5000-9999' },
+  { max: 50000, label: '10000-49999' },
+  { max: 100000, label: '50000-99999' },
+];
+
+export function toAmountBucket(amount: number): string {
+  if (!Number.isFinite(amount)) return 'unknown';
+  const abs = Math.abs(amount);
+  return AMOUNT_BUCKETS.find((b) => abs < b.max)?.label ?? '100000+';
+}
+
 export function trackTransactionSaved(props: {
   type: 'expense' | 'income';
   amount: number;
@@ -24,7 +41,8 @@ export function trackTransactionSaved(props: {
   hasMemo: boolean;
   isGroupTransaction: boolean;
 }) {
-  posthog.capture('transaction_saved', props);
+  const { amount, ...rest } = props;
+  posthog.capture('transaction_saved', { ...rest, amountBucket: toAmountBucket(amount) });
 }
 
 // ─── Receipt OCR events ───────────────────────────────────────
